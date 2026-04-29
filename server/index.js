@@ -70,7 +70,7 @@ app.post("/generate", async (req, res) => {
 const PORT = process.env.PORT || 5000;
 
 app.post("/publish", (req, res) => {
-  const { hero, about, services, cta } = req.body;
+  const { hero, about, services = [], cta } = req.body;
 
   const html = `
   <html>
@@ -87,7 +87,7 @@ app.post("/publish", (req, res) => {
       <p>${about}</p>
 
       <div class="services">
-        ${services.map(s => `<p>${s}</p>`).join("")}
+        ${Array.isArray(services) ? services.map(s => `<p>${s}</p>`).join("") : ""}
       </div>
 
       <button>${cta}</button>
