@@ -18,7 +18,7 @@ export default function App() {
     });
   };
 
-  // ✅ GENERATE
+  // ================== GENERATE ==================
   const handleGenerate = async () => {
     if (!form.name || !form.profession || !form.services) {
       alert("Please fill all fields ⚠️");
@@ -28,13 +28,16 @@ export default function App() {
     setLoading(true);
 
     try {
-      const res = await fetch("https://ai-website-builder-b6ze.onrender.com/generate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(form),
-      });
+      const res = await fetch(
+        "https://ai-website-builder-b6ze.onrender.com/generate",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(form),
+        }
+      );
 
       const data = await res.json();
 
@@ -54,20 +57,33 @@ export default function App() {
     setLoading(false);
   };
 
-  // ✅ PUBLISH (FIXED LOCATION)
+  // ================== PUBLISH (FIXED) ==================
   const handlePublish = async () => {
     try {
-      const res = await fetch("https://ai-website-builder-b6ze.onrender.com/publish", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(result),
-      });
+      const res = await fetch(
+        "https://ai-website-builder-b6ze.onrender.com/publish",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(result),
+        }
+      );
 
       const data = await res.json();
 
-      window.open(data.url, "_blank"); // ✅ OPEN NEW TAB
+      if (!data.url) {
+        alert("Publish failed: No data received");
+        return;
+      }
+
+      // ✅ FIX: render HTML manually instead of window.open(data.url)
+      const newWindow = window.open();
+      newWindow.document.write(
+        decodeURIComponent(data.url.split(",")[1])
+      );
+      newWindow.document.close();
 
     } catch (err) {
       console.error(err);
@@ -141,11 +157,11 @@ export default function App() {
             />
 
             <h1 className="text-3xl font-bold mb-4">
-              {result.hero}
+              {result.hero || "No title"}
             </h1>
 
             <button className="bg-white text-black px-6 py-2 rounded-lg font-semibold">
-              {result.cta}
+              {result.cta || "Click"}
             </button>
           </div>
 
@@ -153,7 +169,7 @@ export default function App() {
           <div className="p-8 text-center">
             <h2 className="text-xl font-bold mb-3">About</h2>
             <p className="text-gray-600 max-w-xl mx-auto">
-              {result.about}
+              {result.about || "No description"}
             </p>
           </div>
 
@@ -162,18 +178,19 @@ export default function App() {
             <h2 className="text-xl font-bold text-center mb-6">Services</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {result.services?.map((s, i) => (
-                <div
-                  key={i}
-                  className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition"
-                >
-                  <p className="text-gray-700 text-sm">{s}</p>
-                </div>
-              ))}
+              {Array.isArray(result.services) &&
+                result.services.map((s, i) => (
+                  <div
+                    key={i}
+                    className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition"
+                  >
+                    <p className="text-gray-700 text-sm">{s}</p>
+                  </div>
+                ))}
             </div>
           </div>
 
-          {/* BUTTONS (FIXED ALIGNMENT) */}
+          {/* BUTTONS */}
           <div className="flex justify-center gap-4 p-6">
 
             <button
