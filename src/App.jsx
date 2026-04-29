@@ -10,6 +10,7 @@ export default function App() {
 
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [publishedUrl, setPublishedUrl] = useState(""); // ✅ NEW
 
   const handleChange = (e) => {
     setForm({
@@ -26,6 +27,7 @@ export default function App() {
     }
 
     setLoading(true);
+    setPublishedUrl(""); // reset old link
 
     try {
       const res = await fetch(
@@ -57,7 +59,7 @@ export default function App() {
     setLoading(false);
   };
 
-  // ================== PUBLISH (FIXED) ==================
+  // ================== PUBLISH ==================
   const handlePublish = async () => {
     try {
       const res = await fetch(
@@ -74,16 +76,14 @@ export default function App() {
       const data = await res.json();
 
       if (!data.url) {
-        alert("Publish failed: No data received");
+        alert("Publish failed");
         return;
       }
 
-      // ✅ FIX: render HTML manually instead of window.open(data.url)
-      const newWindow = window.open();
-      newWindow.document.write(
-        decodeURIComponent(data.url.split(",")[1])
-      );
-      newWindow.document.close();
+      setPublishedUrl(data.url);
+
+      // ✅ Open real hosted page
+      window.open(data.url, "_blank");
 
     } catch (err) {
       console.error(err);
@@ -157,11 +157,11 @@ export default function App() {
             />
 
             <h1 className="text-3xl font-bold mb-4">
-              {result.hero || "No title"}
+              {result.hero}
             </h1>
 
             <button className="bg-white text-black px-6 py-2 rounded-lg font-semibold">
-              {result.cta || "Click"}
+              {result.cta}
             </button>
           </div>
 
@@ -169,7 +169,7 @@ export default function App() {
           <div className="p-8 text-center">
             <h2 className="text-xl font-bold mb-3">About</h2>
             <p className="text-gray-600 max-w-xl mx-auto">
-              {result.about || "No description"}
+              {result.about}
             </p>
           </div>
 
@@ -178,34 +178,51 @@ export default function App() {
             <h2 className="text-xl font-bold text-center mb-6">Services</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {Array.isArray(result.services) &&
-                result.services.map((s, i) => (
-                  <div
-                    key={i}
-                    className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition"
-                  >
-                    <p className="text-gray-700 text-sm">{s}</p>
-                  </div>
-                ))}
+              {result.services?.map((s, i) => (
+                <div
+                  key={i}
+                  className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition"
+                >
+                  <p className="text-gray-700 text-sm">{s}</p>
+                </div>
+              ))}
             </div>
           </div>
 
           {/* BUTTONS */}
-          <div className="flex justify-center gap-4 p-6">
+          <div className="flex flex-col items-center gap-4 p-6">
 
-            <button
-              onClick={handleGenerate}
-              className="bg-gray-800 text-white px-4 py-2 rounded"
-            >
-              Regenerate 🔁
-            </button>
+            <div className="flex gap-4">
+              <button
+                onClick={handleGenerate}
+                className="bg-gray-800 text-white px-4 py-2 rounded"
+              >
+                Regenerate 🔁
+              </button>
 
-            <button
-              onClick={handlePublish}
-              className="bg-green-600 text-white px-4 py-2 rounded"
-            >
-              Publish 🌐
-            </button>
+              <button
+                onClick={handlePublish}
+                className="bg-green-600 text-white px-4 py-2 rounded"
+              >
+                Publish 🌐
+              </button>
+            </div>
+
+            {/* ✅ SHOW LINK AFTER PUBLISH */}
+            {publishedUrl && (
+              <div className="text-center mt-4">
+                <p className="text-green-600 font-semibold">
+                  ✅ Your website is live:
+                </p>
+                <a
+                  href={publishedUrl}
+                  target="_blank"
+                  className="text-blue-600 underline break-all"
+                >
+                  {publishedUrl}
+                </a>
+              </div>
+            )}
 
           </div>
 

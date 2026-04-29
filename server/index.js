@@ -17,6 +17,9 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// ✅ In-memory storage (temporary DB)
+const sites = {};
+
 // ================== HEALTH ==================
 app.get("/", (req, res) => {
   res.send("Server running ✅");
@@ -68,10 +71,11 @@ Tone: ${tone}
   }
 });
 
-// ================== PUBLISH ==================
+// ================== PUBLISH (UPDATED) ==================
 app.post("/publish", (req, res) => {
   try {
     const body = req.body || {};
+    const id = Date.now().toString(); // unique id
 
     const hero = body.hero || "My Website";
     const about = body.about || "";
@@ -83,7 +87,7 @@ app.post("/publish", (req, res) => {
 <html>
 <head>
 <meta charset="UTF-8" />
-<title>My Website</title>
+<title>${hero}</title>
 
 <style>
 body { margin:0; font-family:Arial; background:#f5f5f5; text-align:center; }
@@ -117,14 +121,29 @@ ${services.map(s => `<div class="card">${s}</div>`).join("")}
 </html>
 `;
 
+    // ✅ SAVE SITE
+    sites[id] = html;
+
+    // ✅ RETURN REAL LINK
     res.json({
-      url: "data:text/html;charset=utf-8," + encodeURIComponent(html),
+      url: `https://ai-website-builder-b6ze.onrender.com/site/${id}`,
     });
 
   } catch (err) {
     console.error("PUBLISH ERROR:", err);
     res.status(500).json({ error: "Publish failed" });
   }
+});
+
+// ================== SERVE SITE ==================
+app.get("/site/:id", (req, res) => {
+  const html = sites[req.params.id];
+
+  if (!html) {
+    return res.send("Site not found ❌");
+  }
+
+  res.send(html);
 });
 
 // ================== SERVER ==================
