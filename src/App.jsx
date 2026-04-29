@@ -9,7 +9,7 @@ export default function App() {
   });
 
   const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false); // ✅ NEW
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setForm({
@@ -18,13 +18,14 @@ export default function App() {
     });
   };
 
+  // ✅ GENERATE
   const handleGenerate = async () => {
     if (!form.name || !form.profession || !form.services) {
       alert("Please fill all fields ⚠️");
       return;
     }
 
-    setLoading(true); // ✅ start loading
+    setLoading(true);
 
     try {
       const res = await fetch("https://ai-website-builder-b6ze.onrender.com/generate", {
@@ -36,7 +37,6 @@ export default function App() {
       });
 
       const data = await res.json();
-      console.log("AI RESPONSE:", data);
 
       if (!res.ok) {
         alert(data.error || "Server error");
@@ -51,7 +51,28 @@ export default function App() {
       alert("Error connecting to AI");
     }
 
-    setLoading(false); // ✅ stop loading
+    setLoading(false);
+  };
+
+  // ✅ PUBLISH (FIXED LOCATION)
+  const handlePublish = async () => {
+    try {
+      const res = await fetch("https://ai-website-builder-b6ze.onrender.com/publish", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(result),
+      });
+
+      const data = await res.json();
+
+      window.open(data.url, "_blank"); // ✅ OPEN NEW TAB
+
+    } catch (err) {
+      console.error(err);
+      alert("Publish failed");
+    }
   };
 
   return (
@@ -107,24 +128,22 @@ export default function App() {
           {loading ? "Generating..." : "Generate Website"}
         </button>
       </div>
-        <button
-         onClick={handleGenerate}
-         className="mt-6 bg-gray-800 text-white px-4 py-2 rounded"
-         >
-          Regenerate
-        </button>
 
-
-      {/* RESULT WEBSITE */}
+      {/* RESULT */}
       {result && (
         <div className="mt-10 bg-white rounded-2xl shadow-xl overflow-hidden max-w-5xl mx-auto">
 
           {/* HERO */}
-          <img src="https://via.placeholder.com/100"className="mx-auto mb-4 rounded-full"/>
           <div className="bg-black text-white p-10 text-center">
+            <img
+              src="https://via.placeholder.com/100"
+              className="mx-auto mb-4 rounded-full"
+            />
+
             <h1 className="text-3xl font-bold mb-4">
               {result.hero}
             </h1>
+
             <button className="bg-white text-black px-6 py-2 rounded-lg font-semibold">
               {result.cta}
             </button>
@@ -143,7 +162,7 @@ export default function App() {
             <h2 className="text-xl font-bold text-center mb-6">Services</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {result.services.map((s, i) => (
+              {result.services?.map((s, i) => (
                 <div
                   key={i}
                   className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition"
@@ -152,6 +171,25 @@ export default function App() {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* BUTTONS (FIXED ALIGNMENT) */}
+          <div className="flex justify-center gap-4 p-6">
+
+            <button
+              onClick={handleGenerate}
+              className="bg-gray-800 text-white px-4 py-2 rounded"
+            >
+              Regenerate 🔁
+            </button>
+
+            <button
+              onClick={handlePublish}
+              className="bg-green-600 text-white px-4 py-2 rounded"
+            >
+              Publish 🌐
+            </button>
+
           </div>
 
         </div>

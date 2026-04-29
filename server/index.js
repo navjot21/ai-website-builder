@@ -69,6 +69,37 @@ app.post("/generate", async (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
+app.post("/publish", (req, res) => {
+  const { hero, about, services, cta } = req.body;
+
+  const html = `
+  <html>
+    <head>
+      <title>My Website</title>
+      <style>
+        body { font-family: Arial; padding: 40px; text-align: center; }
+        h1 { font-size: 32px; }
+        .services { margin-top: 20px; }
+      </style>
+    </head>
+    <body>
+      <h1>${hero}</h1>
+      <p>${about}</p>
+
+      <div class="services">
+        ${services.map(s => `<p>${s}</p>`).join("")}
+      </div>
+
+      <button>${cta}</button>
+    </body>
+  </html>
+  `;
+
+  res.json({
+    url: "data:text/html;charset=utf-8," + encodeURIComponent(html)
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
