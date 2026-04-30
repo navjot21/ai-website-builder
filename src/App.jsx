@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function App() {
   const [form, setForm] = useState({
@@ -8,9 +8,27 @@ export default function App() {
     tone: "professional",
   });
 
+  const [user, setUser] = useState("");
+  const [emailInput, setEmailInput] = useState("");
+  const [error, setError] = useState("");
   const [result, setResult] = useState(null);
+  const [sites, setSites] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [publishedUrl, setPublishedUrl] = useState(""); // ✅ NEW
+
+  // ================= EMAIL VALIDATION =================
+  const validateEmail = (email) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  const handleLogin = () => {
+    if (!validateEmail(emailInput)) {
+      setError("❌ Please enter a valid email address");
+      return;
+    }
+
+    setUser(emailInput);
+    setError("");
+  };
 
   const handleChange = (e) => {
     setForm({
@@ -19,7 +37,18 @@ export default function App() {
     });
   };
 
-  // ================== GENERATE ==================
+  // ================= FETCH USER SITES =================
+  const fetchSites = async (email) => {
+    if (!email) return;
+
+    const res = await fetch(
+      `https://ai-website-builder-b6ze.onrender.com/mysites/${email}`
+    );
+    const data = await res.json();
+    setSites(data.sites);
+  };
+
+  // ================= GENERATE =================
   const handleGenerate = async () => {
     if (!form.name || !form.profession || !form.services) {
       alert("Please fill all fields ⚠️");
@@ -27,208 +56,169 @@ export default function App() {
     }
 
     setLoading(true);
-    setPublishedUrl(""); // reset old link
 
-    try {
-      const res = await fetch(
-        "https://ai-website-builder-b6ze.onrender.com/generate",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(form),
-        }
-      );
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        alert(data.error || "Server error");
-        setLoading(false);
-        return;
+    const res = await fetch(
+      "https://ai-website-builder-b6ze.onrender.com/generate",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(form),
       }
+    );
 
-      setResult(data.result);
-
-    } catch (err) {
-      console.error(err);
-      alert("Error connecting to AI");
-    }
-
+    const data = await res.json();
+    setResult(data.result);
     setLoading(false);
   };
 
-  // ================== PUBLISH ==================
+  // ================= PUBLISH =================
   const handlePublish = async () => {
-    try {
-      const res = await fetch(
-        "https://ai-website-builder-b6ze.onrender.com/publish",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(result),
-        }
-      );
-
-      const data = await res.json();
-
-      if (!data.url) {
-        alert("Publish failed");
-        return;
+    const res = await fetch(
+      "https://ai-website-builder-b6ze.onrender.com/publish",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...result,
+          email: user,
+        }),
       }
+    );
 
-      setPublishedUrl(data.url);
+    const data = await res.json();
 
-      // ✅ Open real hosted page
-      window.open(data.url, "_blank");
-
-    } catch (err) {
-      console.error(err);
-      alert("Publish failed");
-    }
+    window.open(data.url, "_blank");
+    fetchSites(user);
   };
 
+  useEffect(() => {
+    fetchSites(user);
+  }, [user]);
+
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
+    <div className="min-h-screen bg-gray-100">
 
-      {/* FORM */}
-      <div className="bg-white p-8 rounded-2xl shadow-xl max-w-lg mx-auto">
-        <h1 className="text-2xl font-bold mb-6 text-center">
-          AI Website Generator 🚀
-        </h1>
-
-        <input
-          type="text"
-          name="name"
-          placeholder="Your Name"
-          value={form.name}
-          onChange={handleChange}
-          className="w-full p-3 mb-4 border rounded-lg"
-        />
-
-        <input
-          type="text"
-          name="profession"
-          placeholder="Your Profession"
-          value={form.profession}
-          onChange={handleChange}
-          className="w-full p-3 mb-4 border rounded-lg"
-        />
-
-        <textarea
-          name="services"
-          placeholder="Your Services"
-          value={form.services}
-          onChange={handleChange}
-          className="w-full p-3 mb-4 border rounded-lg"
-        />
-
-        <select
-          name="tone"
-          value={form.tone}
-          onChange={handleChange}
-          className="w-full p-3 mb-4 border rounded-lg"
-        >
-          <option value="professional">Professional</option>
-          <option value="bold">Bold</option>
-          <option value="luxury">Luxury</option>
-        </select>
-
-        <button
-          onClick={handleGenerate}
-          className="w-full bg-black text-white p-3 rounded-lg"
-        >
-          {loading ? "Generating..." : "Generate Website"}
-        </button>
+      {/* HEADER */}
+      <div className="bg-black text-white p-4 text-center text-xl font-bold">
+        AI Website Builder 🚀
       </div>
 
-      {/* RESULT */}
-      {result && (
-        <div className="mt-10 bg-white rounded-2xl shadow-xl overflow-hidden max-w-5xl mx-auto">
+      <div className="max-w-4xl mx-auto p-6">
 
-          {/* HERO */}
-          <div className="bg-black text-white p-10 text-center">
-            <img
-              src="https://via.placeholder.com/100"
-              className="mx-auto mb-4 rounded-full"
+        {/* LOGIN */}
+        {!user && (
+          <div className="bg-white p-6 rounded-xl shadow mb-6">
+            <h2 className="text-xl font-bold mb-4 text-center">
+              Login to Continue
+            </h2>
+
+            <input
+              placeholder="Enter your email"
+              value={emailInput}
+              onChange={(e) => setEmailInput(e.target.value)}
+              className="border p-3 w-full rounded mb-3"
             />
 
-            <h1 className="text-3xl font-bold mb-4">
-              {result.hero}
-            </h1>
+            {error && (
+              <p className="text-red-500 text-sm mb-2">{error}</p>
+            )}
 
-            <button className="bg-white text-black px-6 py-2 rounded-lg font-semibold">
-              {result.cta}
+            <button
+              onClick={handleLogin}
+              className="bg-black text-white w-full p-3 rounded"
+            >
+              Continue
             </button>
           </div>
+        )}
 
-          {/* ABOUT */}
-          <div className="p-8 text-center">
-            <h2 className="text-xl font-bold mb-3">About</h2>
-            <p className="text-gray-600 max-w-xl mx-auto">
-              {result.about}
-            </p>
-          </div>
+        {/* MAIN APP */}
+        {user && (
+          <>
+            {/* FORM */}
+            <div className="bg-white p-6 rounded-xl shadow mb-6">
+              <h2 className="text-lg font-bold mb-4 text-center">
+                Create Your Website
+              </h2>
 
-          {/* SERVICES */}
-          <div className="bg-gray-100 p-8">
-            <h2 className="text-xl font-bold text-center mb-6">Services</h2>
+              <input
+                name="name"
+                placeholder="Your Name"
+                onChange={handleChange}
+                className="w-full mb-3 border p-3 rounded"
+              />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {result.services?.map((s, i) => (
-                <div
-                  key={i}
-                  className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition"
-                >
-                  <p className="text-gray-700 text-sm">{s}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+              <input
+                name="profession"
+                placeholder="Your Profession"
+                onChange={handleChange}
+                className="w-full mb-3 border p-3 rounded"
+              />
 
-          {/* BUTTONS */}
-          <div className="flex flex-col items-center gap-4 p-6">
+              <textarea
+                name="services"
+                placeholder="Your Services"
+                onChange={handleChange}
+                className="w-full mb-3 border p-3 rounded"
+              />
 
-            <div className="flex gap-4">
               <button
                 onClick={handleGenerate}
-                className="bg-gray-800 text-white px-4 py-2 rounded"
+                className="bg-black text-white p-3 w-full rounded"
               >
-                Regenerate 🔁
-              </button>
-
-              <button
-                onClick={handlePublish}
-                className="bg-green-600 text-white px-4 py-2 rounded"
-              >
-                Publish 🌐
+                {loading ? "Generating..." : "Generate Website"}
               </button>
             </div>
 
-            {/* ✅ SHOW LINK AFTER PUBLISH */}
-            {publishedUrl && (
-              <div className="text-center mt-4">
-                <p className="text-green-600 font-semibold">
-                  ✅ Your website is live:
-                </p>
-                <a
-                  href={publishedUrl}
-                  target="_blank"
-                  className="text-blue-600 underline break-all"
+            {/* RESULT */}
+            {result && (
+              <div className="bg-white p-6 rounded-xl shadow mb-6 text-center">
+                <h2 className="text-xl font-bold mb-2">{result.hero}</h2>
+                <p className="text-gray-600 mb-4">{result.about}</p>
+
+                <button
+                  onClick={handlePublish}
+                  className="bg-green-600 text-white px-6 py-2 rounded"
                 >
-                  {publishedUrl}
-                </a>
+                  Publish Website 🌐
+                </button>
               </div>
             )}
 
-          </div>
+            {/* DASHBOARD */}
+            <div className="bg-white p-6 rounded-xl shadow">
+              <h2 className="text-lg font-bold mb-4 text-center">
+                Your Published Websites 🌐
+              </h2>
 
-        </div>
-      )}
-
+              {sites.length === 0 ? (
+                <p className="text-center text-gray-500">
+                  No websites yet
+                </p>
+              ) : (
+                sites.map((s) => (
+                  <div
+                    key={s._id}
+                    className="p-3 border rounded mb-2"
+                  >
+                    <a
+                      href={s.url}
+                      target="_blank"
+                      className="text-blue-600 underline break-all"
+                    >
+                      {s.url}
+                    </a>
+                  </div>
+                ))
+              )}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

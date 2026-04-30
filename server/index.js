@@ -5,10 +5,25 @@ dotenv.config({
   path: path.resolve("server/.env"),
 });
 
+import mongoose from "mongoose";
 import express from "express";
 import cors from "cors";
 import OpenAI from "openai";
 
+// ================== MONGODB CONNECT ==================
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB Connected ✅"))
+  .catch(err => console.error("Mongo Error:", err));
+
+// ================== MODELS ==================
+const siteSchema = new mongoose.Schema({
+  email: String,
+  url: String,
+});
+
+const Site = mongoose.model("Site", siteSchema);
+
+// ================== APP SETUP ==================
 const app = express();
 app.use(cors({ origin: "*" }));
 app.use(express.json());
@@ -17,7 +32,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// ✅ In-memory storage (temporary DB)
+// TEMP HTML storage (still needed for rendering pages)
 const sites = {};
 
 // ================== HEALTH ==================
@@ -28,7 +43,7 @@ app.get("/", (req, res) => {
 // ================== GENERATE ==================
 app.post("/generate", async (req, res) => {
   try {
-    const { name, profession, services, tone } = req.body || {};
+    const { name, profession, services, tone } = req.body;
 
     const prompt = `
 Return ONLY valid JSON.
@@ -54,101 +69,67 @@ Tone: ${tone}
       ],
     });
 
-    const text = response.choices[0].message.content;
-
-    let json;
-    try {
-      json = JSON.parse(text);
-    } catch {
-      return res.status(500).json({ error: "Invalid AI response" });
-    }
+    const json = JSON.parse(response.choices[0].message.content);
 
     res.json({ result: json });
 
-  } catch (error) {
-    console.error("GENERATE ERROR:", error);
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "AI failed" });
   }
 });
 
-// ================== PUBLISH (UPDATED) ==================
-app.post("/publish", (req, res) => {
+// ================== PUBLISH (UPDATED WITH DB) ==================
+app.post("/publish", async (req, res) => {
   try {
-    const body = req.body || {};
-    const id = Date.now().toString(); // unique id
-
-    const hero = body.hero || "My Website";
-    const about = body.about || "";
-    const cta = body.cta || "Get Started";
-    const services = Array.isArray(body.services) ? body.services : [];
+    const id = Date.now().toString();
+    const { email, hero, about, services = [], cta } = req.body;
 
     const html = `
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8" />
-<title>${hero}</title>
+    <html>
+    <body style="font-family:Arial;text-align:center;">
+    <h1>${hero}</h1>
+    <p>${about}</p>
+    ${services.map(s => `<p>${s}</p>`).join("")}
+    <button>${cta}</button>
+    </body>
+    </html>
+    `;
 
-<style>
-body { margin:0; font-family:Arial; background:#f5f5f5; text-align:center; }
-.hero { background:black; color:white; padding:60px 20px; }
-.section { padding:40px 20px; }
-.services { display:flex; flex-wrap:wrap; justify-content:center; gap:15px; }
-.card { background:white; padding:15px; border-radius:10px; width:250px; }
-</style>
-</head>
-
-<body>
-
-<div class="hero">
-<h1>${hero}</h1>
-<button>${cta}</button>
-</div>
-
-<div class="section">
-<h2>About</h2>
-<p>${about}</p>
-</div>
-
-<div class="section">
-<h2>Services</h2>
-<div class="services">
-${services.map(s => `<div class="card">${s}</div>`).join("")}
-</div>
-</div>
-
-</body>
-</html>
-`;
-
-    // ✅ SAVE SITE
+    // still needed for serving page
     sites[id] = html;
 
-    // ✅ RETURN REAL LINK
-    res.json({
-      url: `https://ai-website-builder-b6ze.onrender.com/site/${id}`,
-    });
+    const url = `https://ai-website-builder-b6ze.onrender.com/site/${id}`;
+
+    // ✅ SAVE TO MONGODB
+    if (email) {
+      await Site.create({ email, url });
+    }
+
+    res.json({ url });
 
   } catch (err) {
-    console.error("PUBLISH ERROR:", err);
+    console.error("Publish error:", err);
     res.status(500).json({ error: "Publish failed" });
+  }
+});
+
+// ================== GET USER SITES (FROM DB) ==================
+app.get("/mysites/:email", async (req, res) => {
+  try {
+    const sites = await Site.find({ email: req.params.email });
+    res.json({ sites });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch sites" });
   }
 });
 
 // ================== SERVE SITE ==================
 app.get("/site/:id", (req, res) => {
-  const html = sites[req.params.id];
-
-  if (!html) {
-    return res.send("Site not found ❌");
-  }
-
-  res.send(html);
+  res.send(sites[req.params.id] || "Not found");
 });
 
 // ================== SERVER ==================
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(process.env.PORT || 5000, () => {
+  console.log("Server running 🚀");
 });
