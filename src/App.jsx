@@ -22,7 +22,7 @@ export default function App() {
 
   const handleLogin = () => {
     if (!validateEmail(emailInput)) {
-      setError("❌ Please enter a valid email address");
+      setError("❌ Please enter a valid email");
       return;
     }
 
@@ -31,68 +31,86 @@ export default function App() {
   };
 
   const handleChange = (e) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    });
+    setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // ================= FETCH USER SITES =================
+  // ================= FETCH SITES =================
   const fetchSites = async (email) => {
-    if (!email) return;
+    try {
+      if (!email) return;
 
-    const res = await fetch(
-      `https://ai-website-builder-b6ze.onrender.com/mysites/${email}`
-    );
-    const data = await res.json();
-    setSites(data.sites);
+      const res = await fetch(
+        `https://ai-website-builder-b6ze.onrender.com/mysites/${email}`
+      );
+
+      const data = await res.json();
+
+      setSites(data?.sites || []);
+    } catch (err) {
+      console.error(err);
+      setSites([]);
+    }
   };
 
   // ================= GENERATE =================
   const handleGenerate = async () => {
     if (!form.name || !form.profession || !form.services) {
-      alert("Please fill all fields ⚠️");
+      alert("Fill all fields ⚠️");
       return;
     }
 
     setLoading(true);
 
-    const res = await fetch(
-      "https://ai-website-builder-b6ze.onrender.com/generate",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(form),
-      }
-    );
+    try {
+      const res = await fetch(
+        "https://ai-website-builder-b6ze.onrender.com/generate",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(form),
+        }
+      );
 
-    const data = await res.json();
-    setResult(data.result);
+      const data = await res.json();
+
+      setResult(data?.result || null);
+    } catch (err) {
+      console.error(err);
+      alert("Generate failed");
+    }
+
     setLoading(false);
   };
 
   // ================= PUBLISH =================
   const handlePublish = async () => {
-    const res = await fetch(
-      "https://ai-website-builder-b6ze.onrender.com/publish",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...result,
-          email: user,
-        }),
+    try {
+      const res = await fetch(
+        "https://ai-website-builder-b6ze.onrender.com/publish",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...result,
+            email: user,
+          }),
+        }
+      );
+
+      const data = await res.json();
+
+      if (!data?.url) {
+        alert("Publish failed");
+        return;
       }
-    );
 
-    const data = await res.json();
+      window.open(data.url, "_blank");
+      fetchSites(user);
 
-    window.open(data.url, "_blank");
-    fetchSites(user);
+    } catch (err) {
+      console.error(err);
+      alert("Publish failed");
+    }
   };
 
   useEffect(() => {
@@ -102,7 +120,6 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-100">
 
-      {/* HEADER */}
       <div className="bg-black text-white p-4 text-center text-xl font-bold">
         AI Website Builder 🚀
       </div>
@@ -111,105 +128,56 @@ export default function App() {
 
         {/* LOGIN */}
         {!user && (
-          <div className="bg-white p-6 rounded-xl shadow mb-6">
-            <h2 className="text-xl font-bold mb-4 text-center">
-              Login to Continue
-            </h2>
-
+          <div className="bg-white p-6 rounded shadow mb-6">
             <input
-              placeholder="Enter your email"
+              placeholder="Enter email"
               value={emailInput}
               onChange={(e) => setEmailInput(e.target.value)}
-              className="border p-3 w-full rounded mb-3"
+              className="border p-3 w-full mb-2"
             />
 
-            {error && (
-              <p className="text-red-500 text-sm mb-2">{error}</p>
-            )}
+            {error && <p className="text-red-500">{error}</p>}
 
             <button
               onClick={handleLogin}
-              className="bg-black text-white w-full p-3 rounded"
+              className="bg-black text-white w-full p-3"
             >
               Continue
             </button>
           </div>
         )}
 
-        {/* MAIN APP */}
+        {/* APP */}
         {user && (
           <>
-            {/* FORM */}
-            <div className="bg-white p-6 rounded-xl shadow mb-6">
-              <h2 className="text-lg font-bold mb-4 text-center">
-                Create Your Website
-              </h2>
+            <div className="bg-white p-6 rounded shadow mb-6">
+              <input name="name" placeholder="Name" onChange={handleChange} className="w-full mb-2 border p-2"/>
+              <input name="profession" placeholder="Profession" onChange={handleChange} className="w-full mb-2 border p-2"/>
+              <textarea name="services" placeholder="Services" onChange={handleChange} className="w-full mb-2 border p-2"/>
 
-              <input
-                name="name"
-                placeholder="Your Name"
-                onChange={handleChange}
-                className="w-full mb-3 border p-3 rounded"
-              />
-
-              <input
-                name="profession"
-                placeholder="Your Profession"
-                onChange={handleChange}
-                className="w-full mb-3 border p-3 rounded"
-              />
-
-              <textarea
-                name="services"
-                placeholder="Your Services"
-                onChange={handleChange}
-                className="w-full mb-3 border p-3 rounded"
-              />
-
-              <button
-                onClick={handleGenerate}
-                className="bg-black text-white p-3 w-full rounded"
-              >
-                {loading ? "Generating..." : "Generate Website"}
+              <button onClick={handleGenerate} className="bg-black text-white w-full p-2">
+                {loading ? "Generating..." : "Generate"}
               </button>
             </div>
 
-            {/* RESULT */}
             {result && (
-              <div className="bg-white p-6 rounded-xl shadow mb-6 text-center">
-                <h2 className="text-xl font-bold mb-2">{result.hero}</h2>
-                <p className="text-gray-600 mb-4">{result.about}</p>
-
-                <button
-                  onClick={handlePublish}
-                  className="bg-green-600 text-white px-6 py-2 rounded"
-                >
-                  Publish Website 🌐
+              <div className="text-center mb-6">
+                <h2>{result?.hero}</h2>
+                <button onClick={handlePublish} className="bg-green-600 text-white px-4 py-2 mt-2">
+                  Publish
                 </button>
               </div>
             )}
 
-            {/* DASHBOARD */}
-            <div className="bg-white p-6 rounded-xl shadow">
-              <h2 className="text-lg font-bold mb-4 text-center">
-                Your Published Websites 🌐
-              </h2>
+            <div className="bg-white p-4 rounded shadow">
+              <h3 className="font-bold mb-2">My Websites</h3>
 
-              {sites.length === 0 ? (
-                <p className="text-center text-gray-500">
-                  No websites yet
-                </p>
+              {!sites || sites.length === 0 ? (
+                <p>No websites yet</p>
               ) : (
-                sites.map((s) => (
-                  <div
-                    key={s._id}
-                    className="p-3 border rounded mb-2"
-                  >
-                    <a
-                      href={s.url}
-                      target="_blank"
-                      className="text-blue-600 underline break-all"
-                    >
+                (sites || []).map((s) => (
+                  <div key={s._id} className="mb-2">
+                    <a href={s.url} target="_blank" className="text-blue-600 underline">
                       {s.url}
                     </a>
                   </div>

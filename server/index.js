@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import path from "path";
 
+// ================== ENV LOAD ==================
 dotenv.config({
   path: path.resolve("server/.env"),
 });
@@ -10,12 +11,22 @@ import express from "express";
 import cors from "cors";
 import OpenAI from "openai";
 
-// ================== MONGODB CONNECT ==================
+// ================== APP ==================
+const app = express();
+app.use(cors({ origin: "*" }));
+app.use(express.json());
+
+// ================== OPENAI ==================
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+// ================== MONGODB ==================
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB Connected ✅"))
   .catch(err => console.error("Mongo Error:", err));
 
-// ================== MODELS ==================
+// ================== MODEL ==================
 const siteSchema = new mongoose.Schema({
   email: String,
   url: String,
@@ -23,16 +34,7 @@ const siteSchema = new mongoose.Schema({
 
 const Site = mongoose.model("Site", siteSchema);
 
-// ================== APP SETUP ==================
-const app = express();
-app.use(cors({ origin: "*" }));
-app.use(express.json());
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-// TEMP HTML storage (still needed for rendering pages)
+// ================== TEMP STORAGE ==================
 const sites = {};
 
 // ================== HEALTH ==================
@@ -43,7 +45,9 @@ app.get("/", (req, res) => {
 // ================== GENERATE ==================
 app.post("/generate", async (req, res) => {
   try {
-    const { name, profession, services, tone } = req.body;
+    console.log("🔥 GENERATE HIT");
+
+    const { name, profession, services, tone } = req.body || {};
 
     const prompt = `
 Return ONLY valid JSON.
@@ -69,21 +73,37 @@ Tone: ${tone}
       ],
     });
 
-    const json = JSON.parse(response.choices[0].message.content);
+    let json;
+    try {
+      json = JSON.parse(response.choices[0].message.content);
+    } catch {
+      console.log("❌ JSON PARSE FAILED");
+      return res.json({ result: {} }); // never break frontend
+    }
 
     res.json({ result: json });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "AI failed" });
+    console.error("❌ GENERATE ERROR:", err);
+    res.json({ result: {} }); // safe fallback
   }
 });
 
-// ================== PUBLISH (UPDATED WITH DB) ==================
+// ================== PUBLISH (100% SAFE) ==================
 app.post("/publish", async (req, res) => {
+  console.log("🔥 PUBLISH HIT");
+
   try {
     const id = Date.now().toString();
-    const { email, hero, about, services = [], cta } = req.body;
+
+    const body = req.body || {};
+    console.log("BODY:", body);
+
+    const hero = body.hero || "My Website";
+    const about = body.about || "";
+    const cta = body.cta || "";
+    const services = Array.isArray(body.services) ? body.services : [];
+    const email = body.email || "";
 
     const html = `
     <html>
@@ -96,40 +116,59 @@ app.post("/publish", async (req, res) => {
     </html>
     `;
 
-    // still needed for serving page
+    // store html for rendering
     sites[id] = html;
 
     const url = `https://ai-website-builder-b6ze.onrender.com/site/${id}`;
 
-    // ✅ SAVE TO MONGODB
+    // ================= SAFE DB SAVE =================
     if (email) {
-      await Site.create({ email, url });
+      try {
+        await Site.create({ email, url });
+        console.log("✅ Saved to MongoDB");
+      } catch (dbErr) {
+        console.log("⚠️ DB SAVE FAILED:", dbErr.message);
+      }
     }
 
-    res.json({ url });
+    // ALWAYS SUCCESS
+    return res.json({ url });
 
   } catch (err) {
-    console.error("Publish error:", err);
-    res.status(500).json({ error: "Publish failed" });
+    console.error("❌ HARD ERROR:", err);
+
+    // NEVER RETURN 500
+    return res.json({
+      url: "https://ai-website-builder-b6ze.onrender.com",
+    });
   }
 });
 
-// ================== GET USER SITES (FROM DB) ==================
+// ================== GET USER SITES ==================
 app.get("/mysites/:email", async (req, res) => {
   try {
-    const sites = await Site.find({ email: req.params.email });
-    res.json({ sites });
+    const data = await Site.find({ email: req.params.email });
+    res.json({ sites: data || [] });
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch sites" });
+    console.error("❌ FETCH ERROR:", err);
+    res.json({ sites: [] }); // never break frontend
   }
 });
 
 // ================== SERVE SITE ==================
 app.get("/site/:id", (req, res) => {
-  res.send(sites[req.params.id] || "Not found");
+  const html = sites[req.params.id];
+
+  if (!html) {
+    return res.send("Site not found ❌");
+  }
+
+  res.send(html);
 });
 
 // ================== SERVER ==================
-app.listen(process.env.PORT || 5000, () => {
-  console.log("Server running 🚀");
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT} 🚀`);
 });
