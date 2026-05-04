@@ -78,18 +78,18 @@ Tone: ${tone}
       json = JSON.parse(response.choices[0].message.content);
     } catch {
       console.log("❌ JSON PARSE FAILED");
-      return res.json({ result: {} }); // never break frontend
+      return res.json({ result: {} });
     }
 
     res.json({ result: json });
 
   } catch (err) {
     console.error("❌ GENERATE ERROR:", err);
-    res.json({ result: {} }); // safe fallback
+    res.json({ result: {} });
   }
 });
 
-// ================== PUBLISH (100% SAFE) ==================
+// ================== PUBLISH (UPGRADED UI) ==================
 app.post("/publish", async (req, res) => {
   console.log("🔥 PUBLISH HIT");
 
@@ -105,23 +105,107 @@ app.post("/publish", async (req, res) => {
     const services = Array.isArray(body.services) ? body.services : [];
     const email = body.email || "";
 
+    // ✅ NEW PREMIUM TEMPLATE
     const html = `
-    <html>
-    <body style="font-family:Arial;text-align:center;">
-    <h1>${hero}</h1>
-    <p>${about}</p>
-    ${services.map(s => `<p>${s}</p>`).join("")}
-    <button>${cta}</button>
-    </body>
-    </html>
-    `;
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<title>${hero}</title>
 
-    // store html for rendering
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f9fafb;
+  color: #111;
+}
+
+.hero {
+  background: linear-gradient(135deg, #000, #333);
+  color: white;
+  padding: 80px 20px;
+  text-align: center;
+}
+
+.hero h1 {
+  font-size: 36px;
+  margin-bottom: 10px;
+}
+
+.hero p {
+  font-size: 18px;
+  opacity: 0.9;
+}
+
+.hero button {
+  margin-top: 20px;
+  padding: 12px 24px;
+  background: white;
+  color: black;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.section {
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.services {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  max-width: 900px;
+  margin: auto;
+}
+
+.card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+
+.footer {
+  text-align: center;
+  padding: 20px;
+  font-size: 14px;
+  color: gray;
+}
+</style>
+</head>
+
+<body>
+
+<div class="hero">
+  <h1>${hero}</h1>
+  <p>${about}</p>
+  <button>${cta}</button>
+</div>
+
+<div class="section">
+  <h2>Services</h2>
+  <div class="services">
+    ${(services || []).map(s => `<div class="card">${s}</div>`).join("")}
+  </div>
+</div>
+
+<div class="footer">
+  Built with AI Website Builder 🚀
+</div>
+
+</body>
+</html>
+`;
+
+    // store html
     sites[id] = html;
 
     const url = `https://ai-website-builder-b6ze.onrender.com/site/${id}`;
 
-    // ================= SAFE DB SAVE =================
+    // SAFE DB SAVE
     if (email) {
       try {
         await Site.create({ email, url });
@@ -131,13 +215,11 @@ app.post("/publish", async (req, res) => {
       }
     }
 
-    // ALWAYS SUCCESS
     return res.json({ url });
 
   } catch (err) {
     console.error("❌ HARD ERROR:", err);
 
-    // NEVER RETURN 500
     return res.json({
       url: "https://ai-website-builder-b6ze.onrender.com",
     });
@@ -151,7 +233,7 @@ app.get("/mysites/:email", async (req, res) => {
     res.json({ sites: data || [] });
   } catch (err) {
     console.error("❌ FETCH ERROR:", err);
-    res.json({ sites: [] }); // never break frontend
+    res.json({ sites: [] });
   }
 });
 
