@@ -10,10 +10,13 @@ import express from "express";
 import cors from "cors";
 import OpenAI from "openai";
 import Razorpay from "razorpay";
+import crypto from "crypto";
 
 const app = express();
 app.use(cors({ origin: "*" }));
 app.use(express.json());
+
+app.use("/webhook", express.raw({ type: "application/json" }));
 
 // ================== OPENAI ==================
 const openai = new OpenAI({
@@ -67,6 +70,48 @@ app.post("/create-order", async (req, res) => {
 
   } catch (err) {
     res.status(500).json({ error: "Payment failed" });
+  }
+});
+// =================WebHook======================= //
+app.post("/webhook", async (req, res) => {
+  try {
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+
+    const signature = req.headers["x-razorpay-signature"];
+
+    const expected = crypto
+      .createHmac("sha256", secret)
+      .update(req.body)
+      .digest("hex");
+
+    if (expected !== signature) {
+      console.log("❌ Invalid webhook signature");
+      return res.status(400).send("Invalid signature");
+    }
+
+    const payload = JSON.parse(req.body.toString());
+
+    // 👇 payment captured event
+    if (payload.event === "payment.captured") {
+      const email = payload.payload.payment.entity.email;
+
+      console.log("💰 Payment verified for:", email);
+
+      let user = await User.findOne({ email });
+
+      if (!user) {
+        await User.create({ email, isPro: true });
+      } else {
+        user.isPro = true;
+        await user.save();
+      }
+    }
+
+    res.json({ status: "ok" });
+
+  } catch (err) {
+    console.error("Webhook error:", err);
+    res.status(500).send("Error");
   }
 });
 

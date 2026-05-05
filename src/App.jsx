@@ -83,7 +83,7 @@ export default function App() {
       order_id: data.orderId,
       handler: async () => {
         await fetch(
-          "https://ai-website-builder-b6ze.onrender.com/upgrade",
+          "https://ai-website-builder-b6ze.onrender.com",
           {
             method: "POST",
             headers: {"Content-Type": "application/json"},
