@@ -13,66 +13,69 @@ import Razorpay from "razorpay";
 import crypto from "crypto";
 
 const app = express();
+
 app.use(cors({ origin: "*" }));
 app.use(express.json());
 
+// ✅ IMPORTANT (webhook raw)
 app.use("/webhook", express.raw({ type: "application/json" }));
 
-// ================== OPENAI ==================
+// ================= OPENAI =================
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// ================== RAZORPAY ==================
+// ================= RAZORPAY =================
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
-// ================== DB ==================
+// ================= DB =================
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB Connected ✅"))
-  .catch(err => console.error("Mongo Error:", err));
+  .catch(err => console.error(err));
 
-// ================== MODELS ==================
-const siteSchema = new mongoose.Schema({
+// ================= MODELS =================
+const Site = mongoose.model("Site", new mongoose.Schema({
   email: String,
   url: String,
-});
+}));
 
-const userSchema = new mongoose.Schema({
+const User = mongoose.model("User", new mongoose.Schema({
   email: String,
-  isPro: {
-    type: Boolean,
-    default: false,
-  },
-});
-
-const Site = mongoose.model("Site", siteSchema);
-const User = mongoose.model("User", userSchema);
+  isPro: { type: Boolean, default: false },
+}));
 
 const sites = {};
 
-// ================== CREATE ORDER ==================
+// ================= CREATE ORDER =================
 app.post("/create-order", async (req, res) => {
   try {
+    const { email } = req.body;
+
     const order = await razorpay.orders.create({
       amount: 49900,
       currency: "INR",
       receipt: "order_" + Date.now(),
+      notes: {
+        email: email, // ✅ FIX
+      },
     });
 
     res.json({
       orderId: order.id,
-      amount: order.amount,
       key: process.env.RAZORPAY_KEY_ID,
+      amount: order.amount,
     });
 
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Payment failed" });
   }
 });
-// =================WebHook======================= //
+
+// ================= WEBHOOK =================
 app.post("/webhook", async (req, res) => {
   try {
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
@@ -85,17 +88,15 @@ app.post("/webhook", async (req, res) => {
       .digest("hex");
 
     if (expected !== signature) {
-      console.log("❌ Invalid webhook signature");
       return res.status(400).send("Invalid signature");
     }
 
     const payload = JSON.parse(req.body.toString());
 
-    // 👇 payment captured event
     if (payload.event === "payment.captured") {
-      const email = payload.payload.payment.entity.email;
+      const email = payload.payload.payment.entity.notes?.email;
 
-      console.log("💰 Payment verified for:", email);
+      if (!email) return res.json({ status: "no email" });
 
       let user = await User.findOne({ email });
 
@@ -105,6 +106,8 @@ app.post("/webhook", async (req, res) => {
         user.isPro = true;
         await user.save();
       }
+
+      console.log("✅ PRO user:", email);
     }
 
     res.json({ status: "ok" });
@@ -115,60 +118,45 @@ app.post("/webhook", async (req, res) => {
   }
 });
 
-// ================== UPGRADE ==================
-app.post("/upgrade", async (req, res) => {
-  const { email } = req.body;
-
-  let user = await User.findOne({ email });
-
-  if (!user) {
-    user = await User.create({ email, isPro: true });
-  } else {
-    user.isPro = true;
-    await user.save();
-  }
-
-  res.json({ success: true });
-});
-
-// ================== GENERATE ==================
+// ================= GENERATE =================
 app.post("/generate", async (req, res) => {
   try {
     const { name, profession, services, tone } = req.body;
-
-    const prompt = `
-Return ONLY valid JSON.
-
-{
-  "hero": "...",
-  "about": "...",
-  "services": ["...", "...", "..."],
-  "cta": "..."
-}
-
-Name: ${name}
-Profession: ${profession}
-Services: ${services}
-Tone: ${tone}
-`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         { role: "system", content: "Return only JSON." },
-        { role: "user", content: prompt },
+        {
+          role: "user",
+          content: `
+Return JSON:
+{
+ "hero":"",
+ "about":"",
+ "services":["","",""],
+ "cta":""
+}
+
+Name:${name}
+Profession:${profession}
+Services:${services}
+Tone:${tone}
+`
+        },
       ],
     });
 
-    const json = JSON.parse(response.choices[0].message.content);
-    res.json({ result: json });
+    res.json({
+      result: JSON.parse(response.choices[0].message.content),
+    });
 
   } catch {
     res.json({ result: {} });
   }
 });
 
-// ================== PUBLISH ==================
+// ================= PUBLISH =================
 app.post("/publish", async (req, res) => {
   try {
     const { email } = req.body;
@@ -176,10 +164,9 @@ app.post("/publish", async (req, res) => {
     const user = await User.findOne({ email });
     const count = await Site.countDocuments({ email });
 
-    // 🔒 FREE LIMIT
     if (!user?.isPro && count >= 1) {
       return res.json({
-        error: "Free plan limit reached. Upgrade to Pro 🚀",
+        error: "Free plan limit reached 🚀",
       });
     }
 
@@ -189,7 +176,7 @@ app.post("/publish", async (req, res) => {
 
     const html = `
     <html>
-    <body style="font-family:Arial;text-align:center;">
+    <body style="text-align:center;font-family:Arial">
     <h1>${hero}</h1>
     <p>${about}</p>
     ${services.map(s => `<p>${s}</p>`).join("")}
@@ -211,13 +198,24 @@ app.post("/publish", async (req, res) => {
   }
 });
 
-// ================== MY SITES ==================
-app.get("/mysites/:email", async (req, res) => {
-  const data = await Site.find({ email: req.params.email });
-  res.json({ sites: data || [] });
+// ================= USER =================
+app.get("/user/:email", async (req, res) => {
+  const user = await User.findOne({ email: req.params.email });
+  const count = await Site.countDocuments({ email: req.params.email });
+
+  res.json({
+    isPro: user?.isPro || false,
+    sites: count,
+  });
 });
 
-// ================== SERVE ==================
+// ================= SITES =================
+app.get("/mysites/:email", async (req, res) => {
+  const data = await Site.find({ email: req.params.email });
+  res.json({ sites: data });
+});
+
+// ================= SERVE =================
 app.get("/site/:id", (req, res) => {
   res.send(sites[req.params.id] || "Not found");
 });
