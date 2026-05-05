@@ -26,32 +26,35 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
-// ================== MONGODB ==================
+// ================== DB ==================
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB Connected ✅"))
   .catch(err => console.error("Mongo Error:", err));
 
-// ================== MODEL ==================
+// ================== MODELS ==================
 const siteSchema = new mongoose.Schema({
   email: String,
   url: String,
 });
 
-const Site = mongoose.model("Site", siteSchema);
-
-// TEMP storage
-const sites = {};
-
-// ================== HEALTH ==================
-app.get("/", (req, res) => {
-  res.send("Server running ✅");
+const userSchema = new mongoose.Schema({
+  email: String,
+  isPro: {
+    type: Boolean,
+    default: false,
+  },
 });
+
+const Site = mongoose.model("Site", siteSchema);
+const User = mongoose.model("User", userSchema);
+
+const sites = {};
 
 // ================== CREATE ORDER ==================
 app.post("/create-order", async (req, res) => {
   try {
     const order = await razorpay.orders.create({
-      amount: 49900, // ₹499
+      amount: 49900,
       currency: "INR",
       receipt: "order_" + Date.now(),
     });
@@ -63,15 +66,30 @@ app.post("/create-order", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("RAZORPAY ERROR:", err);
     res.status(500).json({ error: "Payment failed" });
   }
+});
+
+// ================== UPGRADE ==================
+app.post("/upgrade", async (req, res) => {
+  const { email } = req.body;
+
+  let user = await User.findOne({ email });
+
+  if (!user) {
+    user = await User.create({ email, isPro: true });
+  } else {
+    user.isPro = true;
+    await user.save();
+  }
+
+  res.json({ success: true });
 });
 
 // ================== GENERATE ==================
 app.post("/generate", async (req, res) => {
   try {
-    const { name, profession, services, tone } = req.body || {};
+    const { name, profession, services, tone } = req.body;
 
     const prompt = `
 Return ONLY valid JSON.
@@ -97,17 +115,10 @@ Tone: ${tone}
       ],
     });
 
-    let json;
-    try {
-      json = JSON.parse(response.choices[0].message.content);
-    } catch {
-      return res.json({ result: {} });
-    }
-
+    const json = JSON.parse(response.choices[0].message.content);
     res.json({ result: json });
 
-  } catch (err) {
-    console.error(err);
+  } catch {
     res.json({ result: {} });
   }
 });
@@ -115,93 +126,50 @@ Tone: ${tone}
 // ================== PUBLISH ==================
 app.post("/publish", async (req, res) => {
   try {
+    const { email } = req.body;
+
+    const user = await User.findOne({ email });
+    const count = await Site.countDocuments({ email });
+
+    // 🔒 FREE LIMIT
+    if (!user?.isPro && count >= 1) {
+      return res.json({
+        error: "Free plan limit reached. Upgrade to Pro 🚀",
+      });
+    }
+
     const id = Date.now().toString();
 
-    const { email, hero, about, services = [], cta } = req.body || {};
+    const { hero, about, services = [], cta } = req.body;
 
     const html = `
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8" />
-<title>${hero}</title>
-
-<style>
-body {
-  margin: 0;
-  font-family: Arial;
-  background: #f9fafb;
-  text-align: center;
-}
-
-.hero {
-  background: black;
-  color: white;
-  padding: 60px;
-}
-
-.section {
-  padding: 40px;
-}
-
-.services {
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-}
-
-.card {
-  background: white;
-  padding: 15px;
-  border-radius: 10px;
-}
-</style>
-</head>
-
-<body>
-
-<div class="hero">
-  <h1>${hero}</h1>
-  <p>${about}</p>
-  <button>${cta}</button>
-</div>
-
-<div class="section">
-  <h2>Services</h2>
-  <div class="services">
-    ${services.map(s => `<div class="card">${s}</div>`).join("")}
-  </div>
-</div>
-
-</body>
-</html>
-`;
+    <html>
+    <body style="font-family:Arial;text-align:center;">
+    <h1>${hero}</h1>
+    <p>${about}</p>
+    ${services.map(s => `<p>${s}</p>`).join("")}
+    <button>${cta}</button>
+    </body>
+    </html>
+    `;
 
     sites[id] = html;
 
     const url = `https://ai-website-builder-b6ze.onrender.com/site/${id}`;
 
-    if (email) {
-      try {
-        await Site.create({ email, url });
-      } catch {}
-    }
+    await Site.create({ email, url });
 
     res.json({ url });
 
-  } catch (err) {
-    res.json({ url: "/" });
+  } catch {
+    res.json({ error: "Publish failed" });
   }
 });
 
-// ================== GET USER SITES ==================
+// ================== MY SITES ==================
 app.get("/mysites/:email", async (req, res) => {
-  try {
-    const data = await Site.find({ email: req.params.email });
-    res.json({ sites: data || [] });
-  } catch {
-    res.json({ sites: [] });
-  }
+  const data = await Site.find({ email: req.params.email });
+  res.json({ sites: data || [] });
 });
 
 // ================== SERVE ==================
@@ -209,7 +177,4 @@ app.get("/site/:id", (req, res) => {
   res.send(sites[req.params.id] || "Not found");
 });
 
-// ================== SERVER ==================
-app.listen(process.env.PORT || 5000, () => {
-  console.log("Server running 🚀");
-});
+app.listen(process.env.PORT || 5000);
