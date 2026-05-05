@@ -1,7 +1,6 @@
 import dotenv from "dotenv";
 import path from "path";
 
-// ================== ENV LOAD ==================
 dotenv.config({
   path: path.resolve("server/.env"),
 });
@@ -10,8 +9,8 @@ import mongoose from "mongoose";
 import express from "express";
 import cors from "cors";
 import OpenAI from "openai";
+import Razorpay from "razorpay";
 
-// ================== APP ==================
 const app = express();
 app.use(cors({ origin: "*" }));
 app.use(express.json());
@@ -19,6 +18,12 @@ app.use(express.json());
 // ================== OPENAI ==================
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+});
+
+// ================== RAZORPAY ==================
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
 // ================== MONGODB ==================
@@ -34,7 +39,7 @@ const siteSchema = new mongoose.Schema({
 
 const Site = mongoose.model("Site", siteSchema);
 
-// ================== TEMP STORAGE ==================
+// TEMP storage
 const sites = {};
 
 // ================== HEALTH ==================
@@ -42,11 +47,30 @@ app.get("/", (req, res) => {
   res.send("Server running ✅");
 });
 
+// ================== CREATE ORDER ==================
+app.post("/create-order", async (req, res) => {
+  try {
+    const order = await razorpay.orders.create({
+      amount: 49900, // ₹499
+      currency: "INR",
+      receipt: "order_" + Date.now(),
+    });
+
+    res.json({
+      orderId: order.id,
+      amount: order.amount,
+      key: process.env.RAZORPAY_KEY_ID,
+    });
+
+  } catch (err) {
+    console.error("RAZORPAY ERROR:", err);
+    res.status(500).json({ error: "Payment failed" });
+  }
+});
+
 // ================== GENERATE ==================
 app.post("/generate", async (req, res) => {
   try {
-    console.log("🔥 GENERATE HIT");
-
     const { name, profession, services, tone } = req.body || {};
 
     const prompt = `
@@ -77,35 +101,24 @@ Tone: ${tone}
     try {
       json = JSON.parse(response.choices[0].message.content);
     } catch {
-      console.log("❌ JSON PARSE FAILED");
       return res.json({ result: {} });
     }
 
     res.json({ result: json });
 
   } catch (err) {
-    console.error("❌ GENERATE ERROR:", err);
+    console.error(err);
     res.json({ result: {} });
   }
 });
 
-// ================== PUBLISH (UPGRADED UI) ==================
+// ================== PUBLISH ==================
 app.post("/publish", async (req, res) => {
-  console.log("🔥 PUBLISH HIT");
-
   try {
     const id = Date.now().toString();
 
-    const body = req.body || {};
-    console.log("BODY:", body);
+    const { email, hero, about, services = [], cta } = req.body || {};
 
-    const hero = body.hero || "My Website";
-    const about = body.about || "";
-    const cta = body.cta || "";
-    const services = Array.isArray(body.services) ? body.services : [];
-    const email = body.email || "";
-
-    // ✅ NEW PREMIUM TEMPLATE
     const html = `
 <!DOCTYPE html>
 <html>
@@ -116,63 +129,31 @@ app.post("/publish", async (req, res) => {
 <style>
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
+  font-family: Arial;
   background: #f9fafb;
-  color: #111;
+  text-align: center;
 }
 
 .hero {
-  background: linear-gradient(135deg, #000, #333);
+  background: black;
   color: white;
-  padding: 80px 20px;
-  text-align: center;
-}
-
-.hero h1 {
-  font-size: 36px;
-  margin-bottom: 10px;
-}
-
-.hero p {
-  font-size: 18px;
-  opacity: 0.9;
-}
-
-.hero button {
-  margin-top: 20px;
-  padding: 12px 24px;
-  background: white;
-  color: black;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
+  padding: 60px;
 }
 
 .section {
-  padding: 60px 20px;
-  text-align: center;
+  padding: 40px;
 }
 
 .services {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  display: flex;
+  justify-content: center;
   gap: 20px;
-  max-width: 900px;
-  margin: auto;
 }
 
 .card {
   background: white;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-}
-
-.footer {
-  text-align: center;
-  padding: 20px;
-  font-size: 14px;
-  color: gray;
+  padding: 15px;
+  border-radius: 10px;
 }
 </style>
 </head>
@@ -188,41 +169,28 @@ body {
 <div class="section">
   <h2>Services</h2>
   <div class="services">
-    ${(services || []).map(s => `<div class="card">${s}</div>`).join("")}
+    ${services.map(s => `<div class="card">${s}</div>`).join("")}
   </div>
-</div>
-
-<div class="footer">
-  Built with AI Website Builder 🚀
 </div>
 
 </body>
 </html>
 `;
 
-    // store html
     sites[id] = html;
 
     const url = `https://ai-website-builder-b6ze.onrender.com/site/${id}`;
 
-    // SAFE DB SAVE
     if (email) {
       try {
         await Site.create({ email, url });
-        console.log("✅ Saved to MongoDB");
-      } catch (dbErr) {
-        console.log("⚠️ DB SAVE FAILED:", dbErr.message);
-      }
+      } catch {}
     }
 
-    return res.json({ url });
+    res.json({ url });
 
   } catch (err) {
-    console.error("❌ HARD ERROR:", err);
-
-    return res.json({
-      url: "https://ai-website-builder-b6ze.onrender.com",
-    });
+    res.json({ url: "/" });
   }
 });
 
@@ -231,26 +199,17 @@ app.get("/mysites/:email", async (req, res) => {
   try {
     const data = await Site.find({ email: req.params.email });
     res.json({ sites: data || [] });
-  } catch (err) {
-    console.error("❌ FETCH ERROR:", err);
+  } catch {
     res.json({ sites: [] });
   }
 });
 
-// ================== SERVE SITE ==================
+// ================== SERVE ==================
 app.get("/site/:id", (req, res) => {
-  const html = sites[req.params.id];
-
-  if (!html) {
-    return res.send("Site not found ❌");
-  }
-
-  res.send(html);
+  res.send(sites[req.params.id] || "Not found");
 });
 
 // ================== SERVER ==================
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT} 🚀`);
+app.listen(process.env.PORT || 5000, () => {
+  console.log("Server running 🚀");
 });

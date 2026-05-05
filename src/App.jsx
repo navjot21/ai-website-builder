@@ -15,17 +15,14 @@ export default function App() {
   const [sites, setSites] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // ================= EMAIL VALIDATION =================
-  const validateEmail = (email) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  };
+  const validateEmail = (email) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   const handleLogin = () => {
     if (!validateEmail(emailInput)) {
-      setError("❌ Please enter a valid email");
+      setError("Invalid email");
       return;
     }
-
     setUser(emailInput);
     setError("");
   };
@@ -34,83 +31,81 @@ export default function App() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // ================= FETCH SITES =================
   const fetchSites = async (email) => {
-    try {
-      if (!email) return;
-
-      const res = await fetch(
-        `https://ai-website-builder-b6ze.onrender.com/mysites/${email}`
-      );
-
-      const data = await res.json();
-
-      setSites(data?.sites || []);
-    } catch (err) {
-      console.error(err);
-      setSites([]);
-    }
+    const res = await fetch(
+      `https://ai-website-builder-b6ze.onrender.com/mysites/${email}`
+    );
+    const data = await res.json();
+    setSites(data?.sites || []);
   };
 
-  // ================= GENERATE =================
   const handleGenerate = async () => {
-    if (!form.name || !form.profession || !form.services) {
-      alert("Fill all fields ⚠️");
-      return;
-    }
-
     setLoading(true);
 
-    try {
-      const res = await fetch(
-        "https://ai-website-builder-b6ze.onrender.com/generate",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form),
-        }
-      );
+    const res = await fetch(
+      "https://ai-website-builder-b6ze.onrender.com/generate",
+      {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(form),
+      }
+    );
 
-      const data = await res.json();
-
-      setResult(data?.result || null);
-    } catch (err) {
-      console.error(err);
-      alert("Generate failed");
-    }
-
+    const data = await res.json();
+    setResult(data.result);
     setLoading(false);
   };
 
-  // ================= PUBLISH =================
   const handlePublish = async () => {
-    try {
-      const res = await fetch(
-        "https://ai-website-builder-b6ze.onrender.com/publish",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...result,
-            email: user,
-          }),
-        }
-      );
-
-      const data = await res.json();
-
-      if (!data?.url) {
-        alert("Publish failed");
-        return;
+    const res = await fetch(
+      "https://ai-website-builder-b6ze.onrender.com/publish",
+      {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ ...result, email: user }),
       }
+    );
 
-      window.open(data.url, "_blank");
-      fetchSites(user);
+    const data = await res.json();
+    window.open(data.url);
+    fetchSites(user);
+  };
 
-    } catch (err) {
-      console.error(err);
-      alert("Publish failed");
-    }
+  // ================= PAYMENT =================
+  const handleUpgrade = async () => {
+    try{
+      const res = await fetch(
+      "https://ai-website-builder-b6ze.onrender.com/create-order",
+      { method: "POST" }
+     );
+
+     const data = await res.json();
+     if (!window.Razorpay) {
+       alert("Razorpay not loaded ❌");
+       return;
+     }
+
+
+    const options = {
+      key: data.key,
+      amount: data.amount,
+      currency: "INR",
+      order_id: data.orderId,
+      name: "AI Website Builder",
+      description: "Pro Plan",
+      handler: function () {
+        alert("Payment Successful 🎉");
+      },
+    };
+
+    const rzp = new window.Razorpay(options);
+    rzp.open();
+   
+  } catch (err) {
+    console.error(err);
+    alert("Payment failed");
+  }
+
   };
 
   useEffect(() => {
@@ -118,75 +113,48 @@ export default function App() {
   }, [user]);
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="p-6">
 
-      <div className="bg-black text-white p-4 text-center text-xl font-bold">
-        AI Website Builder 🚀
-      </div>
+      {!user && (
+        <>
+          <input
+            placeholder="Enter email"
+            onChange={(e) => setEmailInput(e.target.value)}
+          />
+          <button onClick={handleLogin}>Login</button>
+          <p>{error}</p>
+        </>
+      )}
 
-      <div className="max-w-4xl mx-auto p-6">
+      {user && (
+        <>
+          <button onClick={handleUpgrade}>
+            Upgrade to Pro 💰
+          </button>
 
-        {/* LOGIN */}
-        {!user && (
-          <div className="bg-white p-6 rounded shadow mb-6">
-            <input
-              placeholder="Enter email"
-              value={emailInput}
-              onChange={(e) => setEmailInput(e.target.value)}
-              className="border p-3 w-full mb-2"
-            />
+          <input name="name" placeholder="Name" onChange={handleChange}/>
+          <input name="profession" placeholder="Profession" onChange={handleChange}/>
+          <textarea name="services" placeholder="Services" onChange={handleChange}/>
 
-            {error && <p className="text-red-500">{error}</p>}
+          <button onClick={handleGenerate}>
+            {loading ? "Loading..." : "Generate"}
+          </button>
 
-            <button
-              onClick={handleLogin}
-              className="bg-black text-white w-full p-3"
-            >
-              Continue
-            </button>
-          </div>
-        )}
+          {result && (
+            <>
+              <h2>{result.hero}</h2>
+              <button onClick={handlePublish}>Publish</button>
+            </>
+          )}
 
-        {/* APP */}
-        {user && (
-          <>
-            <div className="bg-white p-6 rounded shadow mb-6">
-              <input name="name" placeholder="Name" onChange={handleChange} className="w-full mb-2 border p-2"/>
-              <input name="profession" placeholder="Profession" onChange={handleChange} className="w-full mb-2 border p-2"/>
-              <textarea name="services" placeholder="Services" onChange={handleChange} className="w-full mb-2 border p-2"/>
-
-              <button onClick={handleGenerate} className="bg-black text-white w-full p-2">
-                {loading ? "Generating..." : "Generate"}
-              </button>
+          <h3>My Sites</h3>
+          {sites.map(s => (
+            <div key={s._id}>
+              <a href={s.url} target="_blank">{s.url}</a>
             </div>
-
-            {result && (
-              <div className="text-center mb-6">
-                <h2>{result?.hero}</h2>
-                <button onClick={handlePublish} className="bg-green-600 text-white px-4 py-2 mt-2">
-                  Publish
-                </button>
-              </div>
-            )}
-
-            <div className="bg-white p-4 rounded shadow">
-              <h3 className="font-bold mb-2">My Websites</h3>
-
-              {!sites || sites.length === 0 ? (
-                <p>No websites yet</p>
-              ) : (
-                (sites || []).map((s) => (
-                  <div key={s._id} className="mb-2">
-                    <a href={s.url} target="_blank" className="text-blue-600 underline">
-                      {s.url}
-                    </a>
-                  </div>
-                ))
-              )}
-            </div>
-          </>
-        )}
-      </div>
+          ))}
+        </>
+      )}
     </div>
   );
 }
