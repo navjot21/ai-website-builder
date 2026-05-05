@@ -13,12 +13,13 @@ import Razorpay from "razorpay";
 import crypto from "crypto";
 
 const app = express();
+// ✅ IMPORTANT (webhook raw)
+app.use("/webhook", express.raw({ type: "application/json" }));
 
 app.use(cors({ origin: "*" }));
 app.use(express.json());
 
-// ✅ IMPORTANT (webhook raw)
-app.use("/webhook", express.raw({ type: "application/json" }));
+
 
 // ================= OPENAI =================
 const openai = new OpenAI({
@@ -84,33 +85,39 @@ app.post("/webhook", async (req, res) => {
 
     const expected = crypto
       .createHmac("sha256", secret)
-      .update(req.body)
+      .update(req.body)  // now this is RAW BUFFER ✅
       .digest("hex");
 
     if (expected !== signature) {
-      return res.status(400).send("Invalid signature");
+      console.log("❌ Invalid signature");
+      return res.status(400).send("Invalid");
     }
 
     const payload = JSON.parse(req.body.toString());
 
-    if (payload.event === "payment.captured") {
-      const email = payload.payload.payment.entity.notes?.email;
+    const payment = payload.payload.payment.entity;
 
-      if (!email) return res.json({ status: "no email" });
+    const email =
+      payment.notes?.email ||
+      payment.email ||
+      payment.contact;
 
+    console.log("Webhook email:", email);
+
+    if (payload.event === "payment.captured" && email) {
       let user = await User.findOne({ email });
 
-      if (!user) {
+      if (!user){
         await User.create({ email, isPro: true });
-      } else {
+      } else{
         user.isPro = true;
         await user.save();
-      }
-
-      console.log("✅ PRO user:", email);
+      } 
+      console.log("✅ PRO updated:", email);
     }
 
     res.json({ status: "ok" });
+  
 
   } catch (err) {
     console.error("Webhook error:", err);
