@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
+import Landing from "./Landing";
 
 export default function App() {
+  const [showLanding, setShowLanding] = useState(true);
+
   const [user, setUser] = useState("");
   const [emailInput, setEmailInput] = useState("");
   const [plan, setPlan] = useState({ isPro: false, sites: 0 });
@@ -32,7 +35,7 @@ export default function App() {
       "https://ai-website-builder-b6ze.onrender.com/generate",
       {
         method: "POST",
-        headers: {"Content-Type": "application/json"},
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: "Nav",
           profession: "QA",
@@ -51,7 +54,7 @@ export default function App() {
       "https://ai-website-builder-b6ze.onrender.com/publish",
       {
         method: "POST",
-        headers: {"Content-Type": "application/json"},
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...result, email: user }),
       }
     );
@@ -68,14 +71,13 @@ export default function App() {
     fetchPlan();
   };
 
-  // 💰 PAYMENT
   const handleUpgrade = async () => {
     const res = await fetch(
       "https://ai-website-builder-b6ze.onrender.com/create-order",
       {
         method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ email: user }), // ✅ FIX
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user }),
       }
     );
 
@@ -88,7 +90,7 @@ export default function App() {
       order_id: data.orderId,
       handler: function () {
         alert("Payment done ✅");
-        setTimeout(fetchPlan, 3000); // wait for webhook
+        setTimeout(fetchPlan, 4000);
       },
     }).open();
   };
@@ -100,8 +102,13 @@ export default function App() {
     }
   }, [user]);
 
+  // 🚀 LANDING PAGE FLOW
+  if (showLanding) {
+    return <Landing onStart={() => setShowLanding(false)} />;
+  }
+
   return (
-    <div style={{padding: 20, maxWidth: 500, margin: "auto"}}>
+    <div style={{ padding: 20, maxWidth: 500, margin: "auto" }}>
       {!user ? (
         <>
           <input
@@ -114,10 +121,12 @@ export default function App() {
         <>
           <h3>{user}</h3>
 
-          <div style={{
-            padding: 10,
-            background: plan.isPro ? "#d1fae5" : "#fee2e2"
-          }}>
+          <div
+            style={{
+              padding: 10,
+              background: plan.isPro ? "#d1fae5" : "#fee2e2",
+            }}
+          >
             {plan.isPro ? "PRO USER 🚀" : `FREE (${plan.sites}/1)`}
           </div>
 
@@ -129,20 +138,18 @@ export default function App() {
 
           <br /><br />
 
-          <button onClick={handleGenerate}>
-            Generate
-          </button>
+          <button onClick={handleGenerate}>Generate</button>
 
           {result && (
-            <button onClick={handlePublish}>
-              Publish
-            </button>
+            <button onClick={handlePublish}>Publish</button>
           )}
 
           <h4>My Sites</h4>
           {sites.map((s) => (
             <div key={s._id}>
-              <a href={s.url} target="_blank">{s.url}</a>
+              <a href={s.url} target="_blank">
+                {s.url}
+              </a>
             </div>
           ))}
         </>
