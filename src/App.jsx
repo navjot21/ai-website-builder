@@ -108,6 +108,7 @@ export default function App() {
   }
 
   return (
+    
     <div style={{ padding: 20, maxWidth: 500, margin: "auto" }}>
       {!user ? (
         <>
