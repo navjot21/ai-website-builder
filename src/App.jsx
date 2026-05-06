@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import Landing from "./Landing";
+import Landing from "./Landing.jsx";
 
 export default function App() {
   const [showLanding, setShowLanding] = useState(true);
