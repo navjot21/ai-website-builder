@@ -30,7 +30,7 @@ export default function App() {
     setUser(emailInput);
   };
 
-  // ================= FETCH USER PLAN =================
+  // ================= FETCH PLAN =================
 
   const fetchPlan = async () => {
     try {
@@ -41,7 +41,6 @@ export default function App() {
       const data = await res.json();
 
       setPlan(data || { isPro: false, sites: 0 });
-
     } catch (err) {
       console.log(err);
     }
@@ -58,13 +57,12 @@ export default function App() {
       const data = await res.json();
 
       setSites(data.sites || []);
-
     } catch (err) {
       console.log(err);
     }
   };
 
-  // ================= GENERATE WEBSITE =================
+  // ================= GENERATE =================
 
   const handleGenerate = async () => {
     if (!form.name || !form.profession || !form.services) {
@@ -89,7 +87,6 @@ export default function App() {
       const data = await res.json();
 
       setResult(data.result);
-
     } catch (err) {
       console.log(err);
       alert("Generation failed");
@@ -128,14 +125,13 @@ export default function App() {
 
       fetchSites();
       fetchPlan();
-
     } catch (err) {
       console.log(err);
       alert("Publish failed");
     }
   };
 
-  // ================= RAZORPAY =================
+  // ================= PAYMENT =================
 
   const handleUpgrade = async () => {
     try {
@@ -154,7 +150,7 @@ export default function App() {
 
       const data = await res.json();
 
-      const options = {
+      const razor = new window.Razorpay({
         key: data.key,
         amount: data.amount,
         currency: "INR",
@@ -174,12 +170,9 @@ export default function App() {
         theme: {
           color: "#2563eb",
         },
-      };
-
-      const razor = new window.Razorpay(options);
+      });
 
       razor.open();
-
     } catch (err) {
       console.log(err);
       alert("Payment failed");
@@ -207,170 +200,64 @@ export default function App() {
     );
   }
 
-  // ================= UI =================
-
   return (
-    <div
-      style={{
-        display: "flex",
-        minHeight: "100vh",
-        background: "#020617",
-        color: "white",
-        fontFamily: "Inter, sans-serif",
-      }}
-    >
-      {/* ================= SIDEBAR ================= */}
+    <div style={container}>
 
-      <div
-        style={{
-          width: 280,
-          background: "rgba(255,255,255,0.05)",
-          borderRight: "1px solid rgba(255,255,255,0.08)",
-          backdropFilter: "blur(20px)",
-          padding: 30,
-        }}
-      >
-        <h2
-          style={{
-            marginBottom: 30,
-            fontSize: 28,
-          }}
-        >
-          🚀 AI Builder
-        </h2>
+      {/* SIDEBAR */}
 
-        {/* USER */}
+      <div style={sidebar}>
+        <h2 style={logo}>🚀 AI Builder</h2>
 
-        <div
-          style={{
-            background: "rgba(255,255,255,0.06)",
-            padding: 20,
-            borderRadius: 20,
-            marginBottom: 20,
-          }}
-        >
-          <p
-            style={{
-              fontSize: 12,
-              color: "#94a3b8",
-              marginBottom: 8,
-            }}
-          >
-            LOGGED IN AS
-          </p>
-
-          <h3
-            style={{
-              fontSize: 16,
-              wordBreak: "break-word",
-            }}
-          >
-            {user}
-          </h3>
+        <div style={glassCard}>
+          <p style={smallText}>LOGGED IN AS</p>
+          <h3 style={{ wordBreak: "break-word" }}>{user}</h3>
         </div>
 
-        {/* PLAN */}
-
         <div
           style={{
+            ...glassCard,
             background: plan.isPro
               ? "linear-gradient(135deg,#22c55e,#16a34a)"
-              : "rgba(255,255,255,0.06)",
-
-            padding: 20,
-            borderRadius: 20,
-            marginBottom: 20,
+              : "rgba(255,255,255,0.05)",
           }}
         >
-          <h3 style={{ marginBottom: 10 }}>
+          <h3>
             {plan.isPro ? "PRO USER 🚀" : "FREE PLAN"}
           </h3>
 
           {!plan.isPro && (
-            <p style={{ color: "#cbd5e1" }}>
+            <p style={{ marginTop: 10 }}>
               {plan.sites}/1 Websites Used
             </p>
           )}
         </div>
 
-        {/* UPGRADE */}
-
         {!plan.isPro && plan.sites >= 1 && (
-          <button
-            onClick={handleUpgrade}
-            style={{
-              width: "100%",
-              padding: 16,
-              borderRadius: 16,
-              border: "none",
-              background:
-                "linear-gradient(135deg,#22c55e,#16a34a)",
-
-              color: "white",
-              fontWeight: 700,
-              cursor: "pointer",
-              fontSize: 16,
-              boxShadow: "0 10px 30px rgba(34,197,94,0.3)",
-            }}
-          >
+          <button style={greenBtn} onClick={handleUpgrade}>
             Upgrade to Pro ₹499
           </button>
         )}
       </div>
 
-      {/* ================= MAIN CONTENT ================= */}
+      {/* MAIN */}
 
-      <div
-        style={{
-          flex: 1,
-          padding: 40,
-        }}
-      >
-        {/* ================= HEADER ================= */}
+      <div style={main}>
 
-        <div
-          style={{
-            marginBottom: 30,
-          }}
-        >
-          <h1
-            style={{
-              fontSize: 42,
-              marginBottom: 10,
-            }}
-          >
+        <div style={{ marginBottom: 30 }}>
+          <h1 style={heading}>
             Build AI Websites
           </h1>
 
-          <p
-            style={{
-              color: "#94a3b8",
-            }}
-          >
+          <p style={subHeading}>
             Generate professional websites instantly using AI.
           </p>
         </div>
 
-        {/* ================= FORM CARD ================= */}
+        {/* FORM */}
 
-        <div
-          style={{
-            background: "rgba(255,255,255,0.05)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            backdropFilter: "blur(20px)",
-            borderRadius: 30,
-            padding: 30,
-          }}
-        >
-          {/* FORM */}
+        <div style={mainCard}>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 20,
-            }}
-          >
+          <div style={grid}>
             <input
               placeholder="Your Name"
               value={form.name}
@@ -412,8 +299,6 @@ export default function App() {
             }}
           />
 
-          {/* THEME */}
-
           <select
             value={theme}
             onChange={(e) => setTheme(e.target.value)}
@@ -429,175 +314,121 @@ export default function App() {
             <option value="agency">Agency Theme</option>
           </select>
 
-          {/* BUTTON */}
-
           <button
             onClick={handleGenerate}
-            style={{
-              width: "100%",
-              marginTop: 20,
-              padding: 18,
-              borderRadius: 18,
-              border: "none",
-              background:
-                "linear-gradient(135deg,#3b82f6,#2563eb)",
-
-              color: "white",
-              fontWeight: 700,
-              cursor: "pointer",
-              fontSize: 16,
-              boxShadow: "0 10px 30px rgba(37,99,235,0.35)",
-            }}
+            style={blueBtn}
           >
             {loading ? "Generating..." : "Generate Website"}
           </button>
 
-          {/* ================= LOADING ================= */}
+          {/* LOADING */}
 
           {loading && (
-            <div style={{ marginTop: 30 }}>
+            <div style={{ marginTop: 20 }}>
               <div style={skeleton}></div>
               <div style={skeleton}></div>
               <div style={skeleton}></div>
             </div>
           )}
 
-          {/* ================= RESULT ================= */}
+          {/* LIVE PREVIEW */}
 
-          {result && !loading && (
-            <div
-              style={{
-                marginTop: 40,
-                background: "rgba(255,255,255,0.05)",
-                borderRadius: 24,
-                padding: 30,
-              }}
-            >
-              <h2
-                style={{
-                  fontSize: 34,
-                  marginBottom: 16,
-                }}
-              >
-                {result.hero}
-              </h2>
+          {result && (
+            <div style={previewCard}>
 
-              <p
-                style={{
-                  color: "#cbd5e1",
-                  lineHeight: 1.8,
-                  marginBottom: 30,
-                }}
-              >
-                {result.about}
-              </p>
+              <div style={previewHeader}>
+                <div>Live Preview</div>
 
-              {/* SERVICES */}
+                <div style={themeBadge}>
+                  {theme}
+                </div>
+              </div>
 
               <div
                 style={{
-                  display: "grid",
-                  gridTemplateColumns:
-                    "repeat(auto-fit,minmax(200px,1fr))",
+                  ...previewBody,
+                  background:
+                    theme === "luxury"
+                      ? "#111111"
+                      : theme === "dark"
+                      ? "#020617"
+                      : "#ffffff",
 
-                  gap: 16,
+                  color:
+                    theme === "luxury" || theme === "dark"
+                      ? "white"
+                      : "#111827",
                 }}
               >
-                {result.services?.map((s, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      background:
-                        "rgba(255,255,255,0.06)",
+                <h1 style={previewTitle}>
+                  {result.hero}
+                </h1>
 
-                      padding: 20,
-                      borderRadius: 18,
-                    }}
-                  >
-                    {s}
-                  </div>
-                ))}
+                <p style={previewText}>
+                  {result.about}
+                </p>
+
+                <div style={serviceGrid}>
+                  {result.services?.map((s, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        ...serviceCard,
+                        background:
+                          theme === "startup"
+                            ? "#eff6ff"
+                            : theme === "luxury"
+                            ? "#1e1e1e"
+                            : theme === "dark"
+                            ? "#111827"
+                            : "#f8fafc",
+
+                        color:
+                          theme === "luxury" || theme === "dark"
+                            ? "white"
+                            : "#111827",
+                      }}
+                    >
+                      {s}
+                    </div>
+                  ))}
+                </div>
+
+                <button style={previewBtn}>
+                  {result.cta}
+                </button>
               </div>
 
-              {/* PUBLISH */}
-
-              <button
-                onClick={handlePublish}
-                style={{
-                  width: "100%",
-                  marginTop: 30,
-                  padding: 18,
-                  borderRadius: 18,
-                  border: "none",
-                  background:
-                    "linear-gradient(135deg,#22c55e,#16a34a)",
-
-                  color: "white",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  fontSize: 16,
-                  boxShadow:
-                    "0 10px 30px rgba(34,197,94,0.35)",
-                }}
-              >
-                Publish Website 🌐
-              </button>
+              <div style={publishArea}>
+                <button
+                  style={greenBtn}
+                  onClick={handlePublish}
+                >
+                  Publish Website 🌐
+                </button>
+              </div>
             </div>
           )}
         </div>
 
-        {/* ================= MY WEBSITES ================= */}
+        {/* MY SITES */}
 
-        <div
-          style={{
-            marginTop: 40,
-          }}
-        >
-          <h2
-            style={{
-              marginBottom: 20,
-            }}
-          >
+        <div style={{ marginTop: 40 }}>
+          <h2 style={{ marginBottom: 20 }}>
             Published Websites
           </h2>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns:
-                "repeat(auto-fit,minmax(280px,1fr))",
-
-              gap: 20,
-            }}
-          >
+          <div style={siteGrid}>
             {sites.map((s) => (
-              <div
-                key={s._id}
-                style={{
-                  background: "rgba(255,255,255,0.05)",
-                  border:
-                    "1px solid rgba(255,255,255,0.08)",
-
-                  borderRadius: 24,
-                  padding: 24,
-                }}
-              >
-                <h3
-                  style={{
-                    marginBottom: 16,
-                  }}
-                >
+              <div key={s._id} style={siteCard}>
+                <h3 style={{ marginBottom: 14 }}>
                   🌐 Live Website
                 </h3>
 
                 <a
                   href={s.url}
                   target="_blank"
-                  style={{
-                    color: "#60a5fa",
-                    wordBreak: "break-all",
-                    textDecoration: "none",
-                  }}
+                  style={siteLink}
                 >
                   {s.url}
                 </a>
@@ -605,12 +436,73 @@ export default function App() {
             ))}
           </div>
         </div>
+
       </div>
     </div>
   );
 }
 
 // ================= STYLES =================
+
+const container = {
+  display: "flex",
+  minHeight: "100vh",
+  background: "#020617",
+  color: "white",
+  fontFamily: "Inter, sans-serif",
+};
+
+const sidebar = {
+  width: 280,
+  padding: 30,
+  background: "rgba(255,255,255,0.04)",
+  borderRight: "1px solid rgba(255,255,255,0.08)",
+};
+
+const logo = {
+  fontSize: 28,
+  marginBottom: 30,
+};
+
+const glassCard = {
+  background: "rgba(255,255,255,0.05)",
+  padding: 20,
+  borderRadius: 20,
+  marginBottom: 20,
+};
+
+const smallText = {
+  fontSize: 12,
+  color: "#94a3b8",
+  marginBottom: 8,
+};
+
+const main = {
+  flex: 1,
+  padding: 40,
+};
+
+const heading = {
+  fontSize: 42,
+};
+
+const subHeading = {
+  color: "#94a3b8",
+  marginTop: 10,
+};
+
+const mainCard = {
+  background: "rgba(255,255,255,0.05)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: 30,
+  padding: 30,
+};
+
+const grid = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: 20,
+};
 
 const input = {
   width: "100%",
@@ -624,9 +516,116 @@ const input = {
   boxSizing: "border-box",
 };
 
+const blueBtn = {
+  width: "100%",
+  marginTop: 20,
+  padding: 18,
+  borderRadius: 18,
+  border: "none",
+  background: "linear-gradient(135deg,#3b82f6,#2563eb)",
+  color: "white",
+  fontWeight: 700,
+  cursor: "pointer",
+};
+
+const greenBtn = {
+  width: "100%",
+  padding: 16,
+  borderRadius: 16,
+  border: "none",
+  background: "linear-gradient(135deg,#22c55e,#16a34a)",
+  color: "white",
+  fontWeight: 700,
+  cursor: "pointer",
+};
+
 const skeleton = {
   height: 80,
   borderRadius: 20,
   background: "rgba(255,255,255,0.06)",
   marginBottom: 16,
+};
+
+const previewCard = {
+  marginTop: 30,
+  borderRadius: 24,
+  overflow: "hidden",
+  border: "1px solid rgba(255,255,255,0.08)",
+};
+
+const previewHeader = {
+  padding: 14,
+  background: "#020617",
+  display: "flex",
+  justifyContent: "space-between",
+};
+
+const themeBadge = {
+  padding: "6px 12px",
+  borderRadius: 999,
+  background: "#2563eb",
+  fontSize: 12,
+};
+
+const previewBody = {
+  padding: 40,
+  textAlign: "center",
+};
+
+const previewTitle = {
+  fontSize: 42,
+  marginBottom: 20,
+};
+
+const previewText = {
+  maxWidth: 700,
+  margin: "auto",
+  lineHeight: 1.8,
+  opacity: 0.9,
+};
+
+const serviceGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
+  gap: 20,
+  marginTop: 30,
+};
+
+const serviceCard = {
+  padding: 24,
+  borderRadius: 18,
+};
+
+const previewBtn = {
+  marginTop: 35,
+  padding: "16px 36px",
+  border: "none",
+  borderRadius: 14,
+  background: "#2563eb",
+  color: "white",
+  fontWeight: 600,
+};
+
+const publishArea = {
+  padding: 20,
+  background: "#020617",
+};
+
+const siteGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))",
+  gap: 20,
+};
+
+const siteCard = {
+  background: "rgba(255,255,255,0.05)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: 24,
+  padding: 24,
+};
+
+const siteLink = {
+  color: "#60a5fa",
+  wordBreak: "break-all",
+  textDecoration: "none",
 };

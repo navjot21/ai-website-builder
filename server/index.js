@@ -187,19 +187,18 @@ app.post("/publish", async (req, res) => {
     const about = body.about || "";
     const services = Array.isArray(body.services) ? body.services : [];
     const cta = body.cta || "Get Started";
+    const theme = body.theme || "startup";
 
     // ✅ PROFESSIONAL WEBSITE DESIGN
-    const html = `
+    
+const html = `
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
 <title>${hero}</title>
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
 <style>
 
@@ -210,182 +209,101 @@ app.post("/publish", async (req, res) => {
 }
 
 body{
-  font-family:'Inter',sans-serif;
-  background:#020617;
-  color:white;
-  overflow-x:hidden;
-}
+  font-family:Inter,sans-serif;
+  background:
+    ${theme === "luxury"
+      ? "#0f0f0f"
+      : theme === "dark"
+      ? "#020617"
+      : "#f8fafc"};
 
-/* HERO */
+  color:
+    ${theme === "luxury" || theme === "dark"
+      ? "white"
+      : "#111827"};
+}
 
 .hero{
-  min-height:100vh;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  padding:120px 20px;
   text-align:center;
-  padding:40px;
+
   background:
-  radial-gradient(circle at top left,#2563eb33,transparent 40%),
-  radial-gradient(circle at bottom right,#22c55e22,transparent 40%),
-  #020617;
-}
-
-.hero-content{
-  max-width:1000px;
-}
-
-.badge{
-  display:inline-block;
-  padding:10px 20px;
-  border-radius:999px;
-  background:rgba(255,255,255,0.08);
-  border:1px solid rgba(255,255,255,0.1);
-  margin-bottom:25px;
-  font-size:14px;
-  color:#cbd5e1;
-  backdrop-filter:blur(10px);
+    ${theme === "agency"
+      ? "linear-gradient(135deg,#2563eb,#7c3aed)"
+      : theme === "luxury"
+      ? "linear-gradient(135deg,#111,#222)"
+      : theme === "dark"
+      ? "linear-gradient(135deg,#020617,#111827)"
+      : "linear-gradient(135deg,#eff6ff,#ffffff)"};
 }
 
 .hero h1{
-  font-size:72px;
-  line-height:1.1;
-  margin-bottom:25px;
-  font-weight:800;
+  font-size:60px;
+  margin-bottom:20px;
 }
 
 .hero p{
-  color:#cbd5e1;
-  font-size:20px;
-  line-height:1.8;
-  margin-bottom:40px;
-}
-
-/* BUTTON */
-
-.cta-btn{
-  display:inline-block;
-  padding:18px 40px;
-  border-radius:18px;
-  background:linear-gradient(135deg,#2563eb,#3b82f6);
-  color:white;
-  text-decoration:none;
-  font-weight:700;
-  font-size:18px;
-  box-shadow:0 15px 40px rgba(37,99,235,0.35);
-  transition:0.3s;
-}
-
-.cta-btn:hover{
-  transform:translateY(-4px);
-}
-
-/* SERVICES */
-
-.section{
-  padding:100px 20px;
-}
-
-.section-title{
-  text-align:center;
-  font-size:48px;
-  margin-bottom:20px;
-  font-weight:800;
-}
-
-.section-sub{
-  text-align:center;
-  color:#94a3b8;
   max-width:700px;
   margin:auto;
-  margin-bottom:60px;
   line-height:1.8;
+  opacity:0.9;
+  font-size:18px;
 }
 
-.services{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
-  gap:25px;
+.button{
+  display:inline-block;
+  margin-top:35px;
+  padding:16px 36px;
+  border-radius:14px;
+  background:#2563eb;
+  color:white;
+  text-decoration:none;
+  font-weight:bold;
+}
+
+.section{
+  padding:80px 20px;
   max-width:1200px;
   margin:auto;
 }
 
-.card{
-  background:rgba(255,255,255,0.05);
-  border:1px solid rgba(255,255,255,0.08);
-  padding:35px;
-  border-radius:24px;
-  backdrop-filter:blur(20px);
-  transition:0.3s;
+.services{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+  gap:24px;
+  margin-top:40px;
 }
 
-.card:hover{
-  transform:translateY(-6px);
-  border-color:#2563eb;
+.card{
+  padding:30px;
+  border-radius:24px;
+
+  background:
+    ${theme === "luxury"
+      ? "#1a1a1a"
+      : theme === "dark"
+      ? "#111827"
+      : "white"};
+
+  border:
+    ${theme === "dark" || theme === "luxury"
+      ? "1px solid rgba(255,255,255,0.08)"
+      : "1px solid #e5e7eb"};
+
+  box-shadow:
+    ${theme === "startup"
+      ? "0 10px 30px rgba(0,0,0,0.05)"
+      : "none"};
 }
 
 .card h3{
-  font-size:24px;
   margin-bottom:14px;
 }
-
-.card p{
-  color:#94a3b8;
-  line-height:1.7;
-}
-
-/* STATS */
-
-.stats{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
-  gap:20px;
-  max-width:1000px;
-  margin:auto;
-}
-
-.stat{
-  text-align:center;
-  padding:40px;
-  border-radius:24px;
-  background:rgba(255,255,255,0.04);
-}
-
-.stat h2{
-  font-size:52px;
-  color:#3b82f6;
-  margin-bottom:10px;
-}
-
-.stat p{
-  color:#cbd5e1;
-}
-
-/* FOOTER */
 
 .footer{
   padding:40px;
   text-align:center;
-  color:#64748b;
-  border-top:1px solid rgba(255,255,255,0.08);
-}
-
-/* MOBILE */
-
-@media(max-width:768px){
-
-.hero h1{
-  font-size:42px;
-}
-
-.hero p{
-  font-size:16px;
-}
-
-.section-title{
-  font-size:34px;
-}
-
+  opacity:0.7;
 }
 
 </style>
@@ -393,90 +311,40 @@ body{
 
 <body>
 
-<!-- HERO -->
+<div class="hero">
+  <h1>${hero}</h1>
 
-<section class="hero">
+  <p>${about}</p>
 
-<div class="hero-content">
-
-<div class="badge">
-🚀 AI Powered Professional Website
+  <a class="button" href="#">
+    ${cta}
+  </a>
 </div>
 
-<h1>${hero}</h1>
+<div class="section">
 
-<p>
-${about}
-</p>
+  <h2 style="text-align:center;font-size:40px;">
+    Services
+  </h2>
 
-<a href="#" class="cta-btn">
-${cta}
-</a>
+  <div class="services">
 
-</div>
+    ${services.map((s) => `
+      <div class="card">
+        <h3>${s}</h3>
 
-</section>
+        <p>
+          Professional high quality service powered by AI.
+        </p>
+      </div>
+    `).join("")}
 
-<!-- SERVICES -->
-
-<section class="section">
-
-<h2 class="section-title">
-Services
-</h2>
-
-<p class="section-sub">
-Professional solutions designed to help your business grow faster with modern digital expertise.
-</p>
-
-<div class="services">
-
-${services.map((s) => `
-<div class="card">
-<h3>${s}</h3>
-<p>
-High-quality professional service tailored for modern businesses and personal brands.
-</p>
-</div>
-`).join("")}
+  </div>
 
 </div>
-
-</section>
-
-<!-- STATS -->
-
-<section class="section">
-
-<h2 class="section-title">
-Why Choose Us
-</h2>
-
-<div class="stats">
-
-<div class="stat">
-<h2>100%</h2>
-<p>Client Satisfaction</p>
-</div>
-
-<div class="stat">
-<h2>24/7</h2>
-<p>Support & Communication</p>
-</div>
-
-<div class="stat">
-<h2>AI</h2>
-<p>Powered Modern Websites</p>
-</div>
-
-</div>
-
-</section>
-
-<!-- FOOTER -->
 
 <div class="footer">
-Built with AI Website Builder 🚀
+  Powered by AI Website Builder 🚀
 </div>
 
 </body>
