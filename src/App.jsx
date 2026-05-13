@@ -299,20 +299,39 @@ export default function App() {
             }}
           />
 
-          <select
-            value={theme}
-            onChange={(e) => setTheme(e.target.value)}
-            style={{
-              ...input,
-              marginTop: 20,
-            }}
-          >
-            <option value="startup">Startup Theme</option>
-            <option value="dark">Dark Theme</option>
-            <option value="luxury">Luxury Theme</option>
-            <option value="portfolio">Portfolio Theme</option>
-            <option value="agency">Agency Theme</option>
-          </select>
+
+            <select
+               value={theme}
+               onChange={(e) => setTheme(e.target.value)}
+               style={{
+               ...input,
+               marginTop: 20,
+               background: "#0f172a",
+               color: "white",
+              }}
+>
+               <option value="startup" style={{ color: "white" }}>
+                 Startup Theme
+               </option>
+
+               <option value="dark" style={{ color: "white" }}>
+                Dark AI Theme
+               </option>
+
+               <option value="luxury" style={{ color: "white" }}>
+                Luxury Theme
+               </option>
+
+               <option value="portfolio" style={{ color: "white" }}>
+                Portfolio Theme
+               </option>
+
+               <option value="agency" style={{ color: "white" }}>
+                Agency Theme
+               </option>
+              </select>
+
+
 
           <button
             onClick={handleGenerate}
@@ -360,39 +379,70 @@ export default function App() {
                       : "#111827",
                 }}
               >
-                <h1 style={previewTitle}>
-                  {result.hero}
-                </h1>
+                <input
+                  value={result.hero}
+                  onChange={(e) =>
+                  setResult({
+                  ...result,
+                  hero: e.target.value,
+                  })
+                 }
+                />
 
-                <p style={previewText}>
-                  {result.about}
-                </p>
+                <textarea
+                  value={result.about}
+                  onChange={(e) =>
+                  setResult({
+                  ...result,
+                  about: e.target.value,
+                 })
+                }
+                />
 
-                <div style={serviceGrid}>
-                  {result.services?.map((s, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        ...serviceCard,
-                        background:
-                          theme === "startup"
-                            ? "#eff6ff"
-                            : theme === "luxury"
-                            ? "#1e1e1e"
-                            : theme === "dark"
-                            ? "#111827"
-                            : "#f8fafc",
+                {result.services?.map((s, i) => (
+                   <input
+                     key={i}
+                     value={s}
+                     onChange={(e) => {
+                     const updated = [...result.services];
+                     updated[i] = e.target.value;
 
-                        color:
-                          theme === "luxury" || theme === "dark"
-                            ? "white"
-                            : "#111827",
-                      }}
-                    >
-                      {s}
-                    </div>
-                  ))}
-                </div>
+                    setResult({
+                     ...result,
+                     services: updated,
+                    });
+                  }}
+                  />
+                ))}
+                
+               <button
+                   onClick={() =>
+                   setResult({
+                   ...result,
+                   services: [
+                   ...result.services,
+                   "New Service",
+                     ],
+                    })
+                   }
+                  >
+                  + Add Service
+                </button>
+
+                <button
+                    onClick={() => {
+                   const updated =
+                     result.services.filter((_, idx) => idx !== i);
+
+                    setResult({
+                    ...result,
+                    services: updated,
+                   });
+                   }}
+                   >
+                   Remove
+                 </button>
+
 
                 <button style={previewBtn}>
                   {result.cta}
