@@ -200,6 +200,9 @@ const html = `
 
 <title>${hero}</title>
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+
 <style>
 
 *{
@@ -209,101 +212,321 @@ const html = `
 }
 
 body{
-  font-family:Inter,sans-serif;
-  background:
+  font-family:
     ${theme === "luxury"
-      ? "#0f0f0f"
-      : theme === "dark"
+      ? "'Playfair Display', serif"
+      : "'Inter', sans-serif"};
+
+  background:
+    ${theme === "dark"
       ? "#020617"
+      : theme === "luxury"
+      ? "#0f0f0f"
       : "#f8fafc"};
 
   color:
-    ${theme === "luxury" || theme === "dark"
+    ${theme === "dark" || theme === "luxury"
       ? "white"
       : "#111827"};
+
+  overflow-x:hidden;
 }
+
+/* HERO */
 
 .hero{
   padding:120px 20px;
+  text-align:center;
+  position:relative;
+
+  background:
+    ${theme === "startup"
+      ? "linear-gradient(135deg,#eff6ff,#dbeafe)"
+      : theme === "agency"
+      ? "linear-gradient(135deg,#2563eb,#7c3aed)"
+      : theme === "dark"
+      ? "linear-gradient(135deg,#020617,#111827)"
+      : theme === "luxury"
+      ? "linear-gradient(135deg,#111,#1e1e1e)"
+      : "linear-gradient(135deg,#f8fafc,#e2e8f0)"};
+}
+
+.hero::after{
+  content:"";
+  position:absolute;
+  inset:0;
+
+  background:
+    radial-gradient(circle at top right,
+    rgba(255,255,255,0.08),
+    transparent 40%);
+}
+
+.hero-content{
+  position:relative;
+  z-index:2;
+  max-width:1000px;
+  margin:auto;
+}
+
+.hero h1{
+  font-size:72px;
+  line-height:1.05;
+  margin-bottom:25px;
+  font-weight:800;
+}
+
+.hero p{
+  max-width:760px;
+  margin:auto;
+  line-height:1.9;
+  font-size:20px;
+  opacity:0.92;
+}
+
+.button{
+  display:inline-block;
+  margin-top:40px;
+  padding:18px 38px;
+  border-radius:18px;
+
+  background:
+    ${theme === "luxury"
+      ? "#c9a227"
+      : "#2563eb"};
+
+  color:white;
+  text-decoration:none;
+  font-weight:700;
+  font-size:16px;
+
+  box-shadow:
+    0 12px 30px rgba(0,0,0,0.25);
+
+  transition:0.3s;
+}
+
+.button:hover{
+  transform:translateY(-4px);
+}
+
+/* STATS */
+
+.stats{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:20px;
+
+  max-width:1100px;
+  margin:-60px auto 0;
+  padding:0 20px;
+  position:relative;
+  z-index:5;
+}
+
+.stat{
+  padding:30px;
+  border-radius:24px;
+
+  background:
+    rgba(255,255,255,0.08);
+
+  backdrop-filter:blur(20px);
+
+  border:
+    1px solid rgba(255,255,255,0.1);
+
+  text-align:center;
+}
+
+.stat h2{
+  font-size:42px;
+  margin-bottom:10px;
+}
+
+/* SECTION */
+
+.section{
+  padding:110px 20px;
+  max-width:1200px;
+  margin:auto;
+}
+
+.section-title{
+  text-align:center;
+  margin-bottom:60px;
+}
+
+.section-title h2{
+  font-size:52px;
+  margin-bottom:16px;
+}
+
+.section-title p{
+  opacity:0.75;
+  font-size:18px;
+}
+
+/* SERVICES */
+
+.services{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:30px;
+}
+
+.card{
+  padding:35px;
+  border-radius:28px;
+
+  background:
+    ${theme === "dark"
+      ? "#111827"
+      : theme === "luxury"
+      ? "#1b1b1b"
+      : "white"};
+
+  border:
+    1px solid rgba(255,255,255,0.08);
+
+  box-shadow:
+    0 10px 40px rgba(0,0,0,0.08);
+
+  transition:0.35s;
+}
+
+.card:hover{
+  transform:translateY(-8px);
+}
+
+.card-icon{
+  width:65px;
+  height:65px;
+  border-radius:20px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  margin-bottom:22px;
+
+  background:
+    ${theme === "agency"
+      ? "linear-gradient(135deg,#2563eb,#7c3aed)"
+      : "#2563eb"};
+
+  color:white;
+  font-size:28px;
+}
+
+.card h3{
+  font-size:24px;
+  margin-bottom:14px;
+}
+
+.card p{
+  line-height:1.8;
+  opacity:0.75;
+}
+
+/* SHOWCASE */
+
+.showcase{
+  margin-top:80px;
+
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+  gap:30px;
+}
+
+.mockup{
+  height:240px;
+  border-radius:28px;
+
+  background:
+    ${theme === "dark"
+      ? "#111827"
+      : theme === "luxury"
+      ? "#1b1b1b"
+      : "white"};
+
+  box-shadow:
+    0 15px 50px rgba(0,0,0,0.12);
+
+  position:relative;
+  overflow:hidden;
+}
+
+.mockup::before{
+  content:"";
+  position:absolute;
+  inset:0;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255,255,255,0.12),
+      transparent
+    );
+}
+
+/* CTA */
+
+.cta{
+  margin-top:120px;
+  padding:80px 40px;
+  border-radius:36px;
+
   text-align:center;
 
   background:
     ${theme === "agency"
       ? "linear-gradient(135deg,#2563eb,#7c3aed)"
-      : theme === "luxury"
-      ? "linear-gradient(135deg,#111,#222)"
       : theme === "dark"
-      ? "linear-gradient(135deg,#020617,#111827)"
-      : "linear-gradient(135deg,#eff6ff,#ffffff)"};
+      ? "#111827"
+      : "linear-gradient(135deg,#eff6ff,#dbeafe)"};
 }
 
-.hero h1{
-  font-size:60px;
+.cta h2{
+  font-size:56px;
   margin-bottom:20px;
 }
 
-.hero p{
+.cta p{
   max-width:700px;
   margin:auto;
   line-height:1.8;
   opacity:0.9;
-  font-size:18px;
 }
 
-.button{
-  display:inline-block;
-  margin-top:35px;
-  padding:16px 36px;
-  border-radius:14px;
-  background:#2563eb;
-  color:white;
-  text-decoration:none;
-  font-weight:bold;
-}
-
-.section{
-  padding:80px 20px;
-  max-width:1200px;
-  margin:auto;
-}
-
-.services{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
-  gap:24px;
-  margin-top:40px;
-}
-
-.card{
-  padding:30px;
-  border-radius:24px;
-
-  background:
-    ${theme === "luxury"
-      ? "#1a1a1a"
-      : theme === "dark"
-      ? "#111827"
-      : "white"};
-
-  border:
-    ${theme === "dark" || theme === "luxury"
-      ? "1px solid rgba(255,255,255,0.08)"
-      : "1px solid #e5e7eb"};
-
-  box-shadow:
-    ${theme === "startup"
-      ? "0 10px 30px rgba(0,0,0,0.05)"
-      : "none"};
-}
-
-.card h3{
-  margin-bottom:14px;
-}
+/* FOOTER */
 
 .footer{
-  padding:40px;
+  padding:50px 20px;
   text-align:center;
   opacity:0.7;
+}
+
+/* MOBILE */
+
+@media(max-width:768px){
+
+.hero h1{
+  font-size:48px;
+}
+
+.section-title h2{
+  font-size:38px;
+}
+
+.cta h2{
+  font-size:40px;
+}
+
+.hero{
+  padding:90px 20px;
+}
+
 }
 
 </style>
@@ -311,37 +534,108 @@ body{
 
 <body>
 
+<!-- HERO -->
+
 <div class="hero">
-  <h1>${hero}</h1>
 
-  <p>${about}</p>
+  <div class="hero-content">
 
-  <a class="button" href="#">
-    ${cta}
-  </a>
+    <h1>${hero}</h1>
+
+    <p>${about}</p>
+
+    <a href="#" class="button">
+      ${cta}
+    </a>
+
+  </div>
+
 </div>
+
+<!-- STATS -->
+
+<div class="stats">
+
+  <div class="stat">
+    <h2>10K+</h2>
+    <p>Users</p>
+  </div>
+
+  <div class="stat">
+    <h2>500+</h2>
+    <p>Projects</p>
+  </div>
+
+  <div class="stat">
+    <h2>99%</h2>
+    <p>Client Satisfaction</p>
+  </div>
+
+</div>
+
+<!-- SERVICES -->
 
 <div class="section">
 
-  <h2 style="text-align:center;font-size:40px;">
-    Services
-  </h2>
+  <div class="section-title">
+    <h2>What We Offer</h2>
+
+    <p>
+      Modern solutions designed for growth and performance.
+    </p>
+  </div>
 
   <div class="services">
 
     ${services.map((s) => `
       <div class="card">
+
+        <div class="card-icon">
+          ✨
+        </div>
+
         <h3>${s}</h3>
 
         <p>
-          Professional high quality service powered by AI.
+          High quality professional service powered by modern AI systems and premium workflows.
         </p>
+
       </div>
     `).join("")}
 
   </div>
 
+  <!-- SHOWCASE -->
+
+  <div class="showcase">
+
+    <div class="mockup"></div>
+    <div class="mockup"></div>
+    <div class="mockup"></div>
+
+  </div>
+
+  <!-- CTA -->
+
+  <div class="cta">
+
+    <h2>
+      Ready to Build Something Amazing?
+    </h2>
+
+    <p>
+      Launch your professional online presence today with powerful AI-driven design.
+    </p>
+
+    <a href="#" class="button">
+      Get Started
+    </a>
+
+  </div>
+
 </div>
+
+<!-- FOOTER -->
 
 <div class="footer">
   Powered by AI Website Builder 🚀
