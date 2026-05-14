@@ -752,7 +752,7 @@ return (
 
   </div>
 );
-
+}
 
 
 // ================= STYLES =================
@@ -974,4 +974,4 @@ const dot = {
   borderRadius: "50%",
   background: "#94a3b8",
 };
-}
+
